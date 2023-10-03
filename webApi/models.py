@@ -1,53 +1,67 @@
 from django.db import models
 import uuid
 
-
 # Create your models here.
 class BaseModel(models.Model):
-    id = models.UUIDField(
-        default=uuid.uuid4,
-        editable=False,
-        primary_key=True,
-        unique=True,
-        null=False,
-        blank=False,
-    )
-    created_at = models.DateTimeField(
-        auto_now=False, auto_now_add=True, null=True, blank=True
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True, auto_now_add=False, null=True, blank=True
-    )
-
+    id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True )
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, auto_now_add=False, null=True, blank=True)
+    
     class Meta:
         abstract = True
 
 
+class SuperAdmin(BaseModel):
+    fname = models.CharField(max_length=255, default="")
+    lname = models.CharField(max_length=255, default="")
+    email = models.EmailField(max_length=255, unique= True)
+    password = models.TextField(null= False)
+    contact = models.CharField(max_length=20, default="")
+    profile = models.ImageField(upload_to="SuperAdmin/", default="")
+    address = models.TextField(default="")
+    Otp = models.IntegerField(default=0)
+    OtpCount = models.IntegerField(default=0)
+    OtpStatus = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.email)
+
+class SuperAdminWhitelistToken(models.Model):
+    admin = models.ForeignKey(SuperAdmin, on_delete=models.CASCADE, blank= True, null= True)
+    token = models.TextField(default="")
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True, auto_now=False)
+
+    def __str__(self) :
+        return str(self.token)
+
+
+class City(BaseModel):
+    country = models.CharField( max_length=50, default="")
+    city = models.CharField( max_length=50, default="")
+
+    def __str__(self):
+        return str(self.city)
+
 
 class Admin(BaseModel):
-    user_role = (
-        ("super-admin", "super-admin"),
+    admin_role = (
         ("country-admin", "country-admin"),
         ("city-admin", "city-admin"),
         ("branch-manager", "branch-manager")
     )
-
     fname = models.CharField(max_length=255, default="")
     lname = models.CharField(max_length=255, default="")
     email = models.EmailField(max_length=255, unique= True)
-    username = models.CharField(max_length=255, unique= True)
     password = models.TextField(null= False)
     contact = models.CharField(max_length=20, default="")
-    profile = models.ImageField(upload_to="Admin/", default="Admin/dummy.jpg")
+    profile = models.ImageField(upload_to="Admin/", default="")
     address = models.TextField(default="")
-    country = models.CharField(max_length=50, default="")
-    city = models.CharField(max_length=50, default="")
-    cnic = models.IntegerField(default=0)
     Otp = models.IntegerField(default=0)
     OtpCount = models.IntegerField(default=0)
     OtpStatus = models.BooleanField(default=False)
     status = models.BooleanField(default=True)
-    role = models.CharField(choices=user_role, max_length=10, default="super-admin")
+    role = models.CharField(choices=admin_role, max_length=10, default="")
+    city = models.ForeignKey(City, on_delete=models.CASCADE, null= True, blank= True)
 
     def __str__(self):
         return self.email
@@ -62,19 +76,11 @@ class AdminWhitelistToken(models.Model):
         return str(self.token)
 
 
-class Area(BaseModel):
-    country = models.CharField( max_length=50, default="")
-    city = models.CharField( max_length=50, default="")
-
-    def __str__(self) -> str:
-        return str(self.city)
-
-
 class VehicleCategory(BaseModel):
     title = models.CharField(max_length=50, default="")
     description = models.CharField( max_length=50, default="")
     engine = models.TextField(default="")
-    area = models.ForeignKey(Area, on_delete=models.CASCADE, blank= True, null= True)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, blank= True, null= True)
 
     def __str__(self):
         return str(self.title)
@@ -88,7 +94,6 @@ class Service(BaseModel):
 
 class ServiceDetail(BaseModel):
     title = models.CharField(max_length=50, default="")
-    city_to_city = models.BooleanField(default= False)
     vehicle_category = models.ForeignKey(VehicleCategory, on_delete=models.CASCADE, blank= True, null= True)
     service = models.ForeignKey(Service, on_delete=models.CASCADE, blank= True, null= True)
 
@@ -111,21 +116,16 @@ class Captain(BaseModel):
     fname = models.CharField(max_length=255, default="")
     lname = models.CharField(max_length=255, default="")
     email = models.EmailField(max_length=255, unique= True)
-    username = models.CharField(max_length=255, unique= True)
     password = models.TextField(null= False)
     contact = models.CharField(max_length=20, default="", unique= True)
     profile = models.ImageField(upload_to="Captain/Profile", default="")
     address = models.TextField(default="")
-    cnic = models.IntegerField(default=0)
-    cnic_front_image = models.ImageField(upload_to="Captain/Cnic/", default="")
-    cnic_back_image = models.ImageField(upload_to="Captain/Cnic/", default="")
     Otp = models.IntegerField(default=0)
     OtpCount = models.IntegerField(default=0)
     OtpStatus = models.BooleanField(default=False)
     no_of_attempts_allowed = models.IntegerField(default=3)
     no_of_wrong_attempts = models.IntegerField(default=0)
     status = models.BooleanField(default=False)
-    area = models.ForeignKey(Area, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self) -> str:
         return str(self.email)
@@ -140,9 +140,12 @@ class CaptainWhitelistToken(models.Model):
         return str(self.token)
 
 class CaptainVehicle(BaseModel):
+    cnic = models.IntegerField(default=0)
+    cnic_front_image = models.ImageField(upload_to="Captain/Cnic/", default="")
+    cnic_back_image = models.ImageField(upload_to="Captain/Cnic/", default="")
     vehicle_number = models.CharField( max_length=50, default="")
-    numberplate_image = models.ImageField(upload_to="Captain/Vehicle/Numberplate/", default="")
-    vehicle_document_image = models.ImageField( upload_to="Captain/Vehicle/Document/", default="")
+    numberplate_image = models.ImageField(upload_to="Captain/Vehicle_Numberplate/", default="")
+    vehicle_document_image = models.ImageField( upload_to="Captain/Vehicle_Document/", default="")
     license_number = models.CharField(max_length=50, default="")
     license_front_image = models.ImageField( upload_to="Captain/License/", default="")
     license_back_image = models.ImageField( upload_to="Captain/License/", default="")
@@ -156,13 +159,7 @@ class CaptainVehicle(BaseModel):
 
 class VehicleImages(BaseModel):
     captain_vehicle =  models.ForeignKey(CaptainVehicle, on_delete=models.CASCADE, blank=True, null=True)
-    image = models.ImageField( upload_to="Captain/Vehicle/Image/", default="")
-
-class CaptainLocation(BaseModel):
-    online_status = models.BooleanField(default=False)
-    latitude = models.DecimalField(max_digits=11, decimal_places=8, default=0.0)
-    longitude = models.DecimalField(max_digits=11, decimal_places=8, default=0.0)
-    captain = models.ForeignKey(Captain, on_delete=models.CASCADE, blank=True, null=True)
+    image = models.ImageField( upload_to="Captain/Vehicle_Image/", default="")
 
 class CaptainWallet(BaseModel):
     amount = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
@@ -180,13 +177,11 @@ class captainWalletHistory(BaseModel):
 
 
 # Customer Side
-
 class Customer(BaseModel):
     fname = models.CharField(max_length=255, default="")
     lname = models.CharField(max_length=255, default="")
     email = models.EmailField(max_length=255, unique= True)
-    username = models.CharField(max_length=255, unique= True)
-    password = models.TextField(null= True)
+    password = models.TextField(null= False)
     contact = models.CharField(max_length=20, default="", unique= True)
     profile = models.ImageField(upload_to="Customer/Profile", default="")
     address = models.TextField(default="")
@@ -209,16 +204,15 @@ class CustomerWhitelistToken(models.Model):
     def __str__(self) :
         return str(self.token)
 
-class CustomerLocation(BaseModel):
-    online_status = models.BooleanField(default=False)
-    latitude = models.DecimalField(max_digits=11, decimal_places=8, default=0.0)
-    longitude = models.DecimalField(max_digits=11, decimal_places=8, default=0.0)
+
+class CustomerWallet(BaseModel):
+    amount = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    wallet_status = models.BooleanField(default=False)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, blank=True, null=True)
 
 
-class BookService(BaseModel):
+class BookServices(BaseModel):
     status_choice = (
-        ("searching-captain", "searching-captain"),
         ("captain-arrived", "captain-arrived"),
         ("start-service", "start-service"),
         ("end-service","end-service")
@@ -229,30 +223,24 @@ class BookService(BaseModel):
     end_service_datetime = models.DateTimeField(auto_now=False, auto_now_add=False, blank=True, null= True)
     end_service_latitude = models.DecimalField(max_digits=11, decimal_places=8, default=0.0)
     end_service_longitude = models.DecimalField(max_digits=11, decimal_places=8, default=0.0)
-    city_to_city = models.BooleanField(default=False)
-    total_distance = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
-    total_time = models.DateTimeField( auto_now=False, auto_now_add=False,blank= True, null= True)
-    waiting_time = models.DateTimeField(auto_now=False, auto_now_add=False, blank= True, null= True)
     estimate_cost = models.DecimalField( max_digits=5, decimal_places=2, default= 0.0)
-    total_cost = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
-    ride_status = models.CharField( max_length=50, choices= "", default="")
+    waiting_time = models.DateTimeField(auto_now=False, auto_now_add=False, blank= True, null= True)
+    total_distance_travel = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
+    total_time = models.DateTimeField( auto_now=False, auto_now_add=False,blank= True, null= True)
+    total_amount = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
+    customer_paid_amount = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
+    ride_status = models.CharField( max_length=50, choices= status_choice, default="")
     customer =  models.ForeignKey(Customer, on_delete=models.CASCADE, blank=True, null=True)
     captain_vehicle =  models.ForeignKey(CaptainVehicle, on_delete=models.CASCADE, blank=True, null=True)
     service_detail =  models.ForeignKey(ServiceDetail, on_delete=models.CASCADE, blank=True, null=True)
-    captain_location =  models.ForeignKey(CaptainLocation, on_delete=models.CASCADE, blank=True, null=True)
-    customer_location =  models.ForeignKey(CustomerLocation, on_delete=models.CASCADE, blank=True, null=True)
-    cost =  models.ForeignKey(Cost, on_delete=models.CASCADE, blank=True, null=True)
-    status = models.CharField( max_length=50, choices= status_choice, default="")
 
-class ServicePayment(BaseModel):
-    payment_choice = (
-        ("paypal", "paypal"),
-        ("card", "card")
-    )
-    payment_type = models.CharField( max_length=50, choices= payment_choice, default="")
-    payment_amount = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
-    status = models.BooleanField(default= False)
-    book_service = models.ForeignKey(BookService, on_delete=models.CASCADE, blank=True, null=True)
+class CustomerServiceHistory(BaseModel):
+    total_amount = models.DecimalField( max_digits=5, decimal_places=2, default= 0.0)
+    customer_paid_amount = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
+    wallet_before = models.DecimalField( max_digits=5, decimal_places=2, default= 0.0)
+    wallet_after = models.DecimalField( max_digits=5, decimal_places=2, default= 0.0)
+    book_service = models.ForeignKey(BookServices, on_delete=models.CASCADE, null= True, blank=True)
+    customer = models.ForeignKey(Customer , on_delete=models.CASCADE, blank= True , null= True)
 
 class CourierDetail (BaseModel):
     title = models.CharField( max_length=50, default="")
@@ -264,7 +252,7 @@ class CourierDetail (BaseModel):
     receiver_address = models.CharField( max_length=50, default="")
     receiver_contact = models.CharField( max_length=50, default="")
     courier_value = models.IntegerField(default=0)
-    book_service = models.ForeignKey(BookService, on_delete=models.CASCADE, blank=True, null=True)
+    book_service = models.ForeignKey(BookServices, on_delete=models.CASCADE, blank=True, null=True)
 
 class ShoppingDetail(BaseModel):
     title = models.CharField( max_length=50, default="")
@@ -275,8 +263,7 @@ class ShoppingDetail(BaseModel):
     item= models.TextField(default="")
     item_description=models.TextField(default="")
     estimate_price = models.IntegerField(default= 0)
-    book_service = models.ForeignKey(BookService, on_delete=models.CASCADE, blank=True, null=True)
-
+    book_service = models.ForeignKey(BookServices, on_delete=models.CASCADE, blank=True, null=True)
 
 #  Captain History
 class CaptainServiceHistory(BaseModel):
@@ -285,12 +272,11 @@ class CaptainServiceHistory(BaseModel):
     company_charges = models.DecimalField( max_digits=5, decimal_places=2, default= 0.0)
     wallet_before = models.DecimalField( max_digits=5, decimal_places=2, default= 0.0)
     wallet_after = models.DecimalField( max_digits=5, decimal_places=2, default= 0.0)
-    book_service = models.ForeignKey(BookService, on_delete=models.CASCADE, blank=True, null=True)
-    service_payment = models.ForeignKey(ServicePayment, on_delete=models.CASCADE, blank=True, null=True)
+    book_service = models.ForeignKey(BookServices, on_delete=models.CASCADE, blank=True, null=True)
     captain_wallet = models.ForeignKey(CaptainWallet, on_delete=models.CASCADE, blank=True, null=True)
 
 class CompanyProfitHistory(BaseModel):
     profit_amount = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
     profit_percentage = models.DecimalField( max_digits=5, decimal_places=2, default=0.0)
     captain_service_history = models.ForeignKey(CaptainServiceHistory, on_delete=models.CASCADE, blank=True, null=True)
-    area = models.ForeignKey(Area, on_delete=models.CASCADE, blank=True, null=True)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, blank=True, null=True)
