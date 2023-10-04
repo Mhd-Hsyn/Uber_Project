@@ -31,7 +31,7 @@ class SuperAdminWhitelistToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True, auto_now=False)
 
     def __str__(self) :
-        return str(self.token)
+        return str(self.admin)
 
 
 class Place(BaseModel):
@@ -59,7 +59,7 @@ class Admin(BaseModel):
     OtpCount = models.IntegerField(default=0)
     OtpStatus = models.BooleanField(default=False)
     status = models.BooleanField(default=True)
-    role = models.CharField(choices=admin_role, max_length=10, default="")
+    role = models.CharField(choices=admin_role, max_length=50, default="")
     city = models.ForeignKey(Place, on_delete=models.CASCADE, null= True, blank= True)
 
     def __str__(self):
@@ -72,7 +72,7 @@ class AdminWhitelistToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True, auto_now=False)
 
     def __str__(self) :
-        return str(self.token)
+        return str(self.admin)
 
 
 class VehicleCategory(BaseModel):
@@ -127,7 +127,7 @@ class CaptainWhitelistToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True, auto_now=False)
 
     def __str__(self) :
-        return str(self.token)
+        return str(self.captain)
 
 class CaptainVehicle(BaseModel):
     cnic = models.IntegerField(default=0)
@@ -191,7 +191,7 @@ class CustomerWhitelistToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True, auto_now=False)
 
     def __str__(self) :
-        return str(self.token)
+        return str(self.customer)
 
 class CustomerWallet(BaseModel):
     amount = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
