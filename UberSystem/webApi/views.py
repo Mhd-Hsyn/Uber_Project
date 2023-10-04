@@ -9,7 +9,7 @@ from decouple import config
 from operator import itemgetter
 
 
-from .serializers import *
+from .serializers import SuperAdminLoginSerializer, AddCitySerializer, GetCitySerializer
 from .models import *
 from Usable import useable as uc
 from Usable import token as _auth
@@ -259,3 +259,57 @@ class SuperAdminApi(ModelViewSet):
             return Response({"status": False, "error": validator["message"]}, status=400)
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status=400)
+        
+    @action(detail=False, methods=["POST", "PUT", "DELETE", "GET"])
+    def cities(self, request):
+        try:
+            if request.method == "POST":
+                requireFeilds = ["country", "city"]
+                validator = uc.requireFeildValidation(request.data, requireFeilds)
+                if validator['status']:
+                    ser = AddCitySerializer(data= request.data)
+                    if ser.is_valid():
+                        ser.save()
+                        return Response({"status": True, "message": "Added Successfully"})
+                    return Response({"status": False, "message": str(ser.errors)}, status= 400)
+                return Response({"status": False, "error": str(validator['message'])}, status= 400)
+            
+            if request.method == "GET":
+                fetch_city = Place.objects.all().order_by("country")
+                ser = GetCitySerializer(fetch_city, many = True)                
+                return Response({"status": True, "message": ser.data}, status= 200)
+            
+            if request.method == "DELETE":
+                requireFeilds = ['id']
+                validator = uc.requireFeildValidation(request.data , requireFeilds)
+                if validator['status']:
+                    fetch_city = Place.objects.filter(id = request.data['id']).first()
+                    if fetch_city:
+                        fetch_city.delete()
+                        return Response({"status": True, "message": f"{fetch_city.city} deleted successfully"}, status= 200)
+                    return Response({"status": False, "error": "id not exist"}, status= 400)
+                return Response({"status": False, "error": str(validator['message'])}, status= 400)
+            
+            if request.method == "PUT":
+                requireFeilds = ['id', 'country', 'city']
+                validator = uc.requireFeildValidation(request.data , requireFeilds)
+                if validator['status']:
+                    fetch_city = Place.objects.filter(id = request.data['id']).first()
+                    if fetch_city:
+                        country = request.data['country'].lower()
+                        city = request.data['city'].lower()
+                        if Place.objects.filter(country = country, city = city).first():
+                            return Response({"status": False, "error": f"{city} alreadey exist"}, status= 400)
+                        
+                        fetch_city.country = country
+                        fetch_city.city = city
+                        fetch_city.save()
+                        return Response({"status": True, "message": f"{fetch_city.city} Updated Successfully"}, status= 200)
+                    return Response({"status": False, "error": "id not exist"}, status= 400)
+                return Response({"status": False, "error": validator['message']}, status= 400)
+
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status= 400)
+        
+
+        
