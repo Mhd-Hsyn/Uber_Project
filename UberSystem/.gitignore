@@ -1,1 +1,33 @@
 .env
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Database
+db.sqlite3
+
+# Static files
+static/
+
+# Media files
+media/
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Compiled Python files
+*.pyc
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Ignore migration files, as they are not needed in version control
+*/migrations/
+
+# Ignore SQLite database file
+*.sqlite3
+
+# Ignore pytest cache
+__pycache__/
+.pytest_cache/
