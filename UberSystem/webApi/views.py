@@ -408,4 +408,40 @@ class SuperAdminApi(ModelViewSet):
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status= 400)
     
-    
+    @action(detail= False, methods= ['POST', 'GET'])
+    def services (self, request):
+        try:
+            if request.method == 'POST':
+                requireFeild = ['vehicle_cat_id', 'title', 'description']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if not validator['status']:
+                    return Response({"status": False, "error": validator['message']}, status=400)
+                # fetch_vehicleCat = VehicleCategory.objects.filter(id = request.data['vehicle_cat_id']).first()
+                # if not fetch_vehicleCat:
+                #     return Response({'status': False, 'error': "vehicle vategory not exists "})
+                ser = AddServicesSerializer(data= request.data, context = request.data['vehicle_cat_id'])
+                if ser.is_valid():
+                    ser.save()
+                    return Response({"status": True, "message": "Added Successfully"}, status=400)
+                return Response({"status": False, "error": ser.errors}, status=400)
+            if request.method == 'GET':
+                requireFeild = ['city_id']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator ['status']:
+                    list_cat = VehicleCategory.objects.filter(city = request.data['city_id']).values('id','title')
+                    if list_cat:
+                        list = []
+                        for i in  list_cat:
+                            print(i['id'] ,"  -  ", i['title'])
+                            fetch_services_list = Service.objects.filter(vehicle_category = i['id']).values('title')
+                            print(fetch_services_list)
+                            # list[''] = fetch_services_list
+                        print(list)
+                        return Response({"data": str(list_cat)})        
+                pass
+            if request.method == 'PUT':
+                pass
+            if request.method == 'DELETE':
+                pass
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status= 400)

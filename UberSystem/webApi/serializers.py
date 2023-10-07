@@ -122,3 +122,30 @@ class EditVehicleCategorySerializer(serializers.ModelSerializer):
         instance.description = validated_data.get('description', instance.description)
         instance.save()
         return instance
+
+class AddServicesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = '__all__'
+    
+    def validate_title(self, val):
+        title = val.lower()
+        vehicle_cat_id = self.context
+        fetch_cat = VehicleCategory.objects.filter(id = vehicle_cat_id).first()
+        if not fetch_cat:
+            raise serializers.ValidationError("Vehicle category id not exist")
+        if Service.objects.filter(vehicle_category = fetch_cat, title = title).exists():
+            raise serializers.ValidationError(f"{title} Service exist on {fetch_cat.title} Category in {fetch_cat.city.city} City")
+        
+        # return {"title":title, "fetch_cat": fetch_cat}
+        return title,  fetch_cat
+
+    
+    def create(self, validated_data):
+        title =  validated_data['title'][0]
+        fetch_cat = validated_data['title'][1]
+        description = validated_data['description']
+
+        return Service.objects.create(vehicle_category = fetch_cat, title = title, description = description)
+
+        
