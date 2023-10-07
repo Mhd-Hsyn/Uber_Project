@@ -39,12 +39,11 @@ class Place(BaseModel):
     city = models.CharField( max_length=50, default="")
 
     def __str__(self):
-        return str(self.city)
+        return str(f'{self.city} - {self.country}')
 
 
 class Admin(BaseModel):
     admin_role = (
-        ("country-admin", "country-admin"),
         ("city-admin", "city-admin"),
         ("branch-manager", "branch-manager")
     )
@@ -63,7 +62,7 @@ class Admin(BaseModel):
     city = models.ForeignKey(Place, on_delete=models.CASCADE, null= True, blank= True)
 
     def __str__(self):
-        return self.email
+        return str(f"{self.email} - {self.role} - {self.city}")
 
 
 class AdminWhitelistToken(models.Model):
@@ -81,7 +80,7 @@ class VehicleCategory(BaseModel):
     city = models.ForeignKey(Place, on_delete=models.CASCADE, blank= True, null= True)
 
     def __str__(self):
-        return str(self.title)
+        return str(f'{self.title} - {self.city}')
 
 class Service(BaseModel):
     title = models.CharField( max_length=50, default="")
@@ -89,7 +88,7 @@ class Service(BaseModel):
     vehicle_category = models.ForeignKey(VehicleCategory, on_delete=models.CASCADE, blank= True, null= True)
 
     def __str__(self):
-        return str(self.title)
+        return str(f'{self.title} - {self.vehicle_category}')
 
 class Cost(BaseModel):
     initial_cost = models.CharField( max_length=50, default="")

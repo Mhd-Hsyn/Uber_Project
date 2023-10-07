@@ -8,8 +8,7 @@ from passlib.hash import django_pbkdf2_sha256 as handler
 from decouple import config
 from operator import itemgetter
 
-
-from .serializers import SuperAdminLoginSerializer, AddCitySerializer, GetCitySerializer
+from .serializers import *
 from .models import *
 from Usable import useable as uc
 from Usable import token as _auth
@@ -60,7 +59,7 @@ class SuperAdminAuthViewset(ModelViewSet):
             return Response({"status": False, "error": str(e)}, status=400)
     
     @action(detail= False, methods= ['POST'])
-    def adminForgotPassSendMail(self, request):
+    def forgotPassSendMail(self, request):
         try:
             requireFeild = ["email"]
             validator = uc.requireFeildValidation(request.data, requireFeild)
@@ -310,6 +309,103 @@ class SuperAdminApi(ModelViewSet):
 
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status= 400)
-        
 
-        
+    @action(detail= False, methods=['POST', 'GET', 'DELETE'])
+    def staff(self, request):
+        try:
+            if request.method == 'POST':
+                requireFeilds = ['city', 'role', 'fname', 'lname', 'email', 'contact', 'address','password']
+                validator = uc.requireFeildValidation(request.data, requireFeilds)
+                if validator['status']:
+                    data = request.data
+                    fetch_city = Place.objects.filter(id = data['city']).first()
+                    if fetch_city:
+                        ser = AddStaffSerializer(data= data, context = {'city_id': data['city']})
+                        if ser.is_valid():
+                            ser.save()
+                            return Response({"status": True, "message": "Staff member Created Successfully !!!"})                    
+                        return Response({"status": False, "error": str(ser.errors)}, status= 400)
+                    return Response({"status": False, "error": "City not exist"}, status= 400)
+                return Response({"status": False, "error": validator['message']}, status= 400)    
+            
+            if request.method == "GET":
+                requireFeilds = ['city_id']
+                validator = uc.requireFeildValidation(request.data, requireFeilds)
+                if validator['status']:
+                    fetch_city = Place.objects.filter(id = request.data['city_id']).first()
+                    if fetch_city:
+                        fetch_staff = Admin.objects.filter(city = fetch_city).order_by('role')
+                        ser = GetStaffByCitySerializer(fetch_staff, many=True)
+                        sorted_data = sorted(ser.data, key=lambda x: x['role'] != 'city-admin')
+                        return Response({"status": True, "city": str(fetch_city) ,"data": sorted_data}, status= 200)
+                    return Response({"status": False, "error": "Invalid city ID"}, status= 400)
+                return Response({"status": False, "error": validator['message']}, status= 400)
+            
+            if request.method == 'DELETE':
+                requireFeilds = ['staff_id']
+                validator = uc.requireFeildValidation(request.data, requireFeilds)
+                if validator['status']:
+                    fetch_staff = Admin.objects.filter(id = request.data['staff_id']).first()
+                    if fetch_staff:
+                        fetch_staff.delete()
+                        return Response({"status": True, "message": f"{fetch_staff} deleted successfully"})
+                    return Response({"status": False, "error": "staff doesnot exists"}, status= 400)
+                return Response({"status": False, "error": validator['message']}, status= 400)
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status= 400)
+    
+    
+    @action(detail=False, methods=['POST', 'GET', 'PUT', "DELETE"])
+    def vehicleCategory(self, request):
+        try:
+            if request.method == "POST":
+                requireFeild = ['city_id' ,'title', 'description']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    ser = AddVehicleCategorySerializer(data= request.data, context= request.data['city_id'])
+                    if ser.is_valid():
+                        ser.save()
+                        return Response({"status": True, "message": "Added successfully"})
+                    return Response({"status": False, "error": str(ser.errors)}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+
+            elif request.method == "GET":
+                requireFeild = ['city_id']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    fetch_city = Place.objects.filter(id = request.data['city_id']).first()
+                    if not fetch_city:
+                        return Response({"status": False, "error": "invalid city id"}, status=400)
+                    fetch_vehicleCategory = VehicleCategory.objects.filter(city = fetch_city).order_by('title')
+                    if fetch_vehicleCategory:
+                        ser = GetVehicleCategorySerializer(fetch_vehicleCategory, many = True)
+                        return Response({"status": True ,"city": fetch_city.city ,"Vehicle_Categories": ser.data}, status= 200)
+                    return Response({"status": False, "error": "city has no vehicle category"}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+
+            elif request.method == "PUT":
+                requireFeild = ['city_id', 'vehicle_cat_id' ,'title', 'description']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    fetch_vehicleCategory = VehicleCategory.objects.filter(id = request.data['vehicle_cat_id']).first()
+                    ser = EditVehicleCategorySerializer(instance= fetch_vehicleCategory, data= request.data, context={'city_id':request.data['city_id']})
+                    if ser.is_valid():
+                        ser.save()
+                        return Response({"status": True, "message": f"{request.data['title']} Updated in city successfully !!!!"})
+                    return Response({"status": False, "error": str(ser.errors)}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+
+            elif request.method == "DELETE":
+                requireFeild = ['vehicle_cat_id']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    fetch_vehicleCategory = VehicleCategory.objects.filter(id = request.data['vehicle_cat_id']).first()
+                    if fetch_vehicleCategory:
+                        fetch_vehicleCategory.delete()
+                        return Response({"status": True, "message": f"{fetch_vehicleCategory.title} Category Deleted from {fetch_vehicleCategory.city.city} city !!!!"})
+                    return Response({"status": False, "error": "Invalid id Vehicle category not exists"}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status= 400)
+    
+    
