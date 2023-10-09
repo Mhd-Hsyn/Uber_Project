@@ -408,7 +408,7 @@ class SuperAdminApi(ModelViewSet):
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status= 400)
     
-    @action(detail= False, methods= ['POST', 'GET'])
+    @action(detail= False, methods= ['POST', 'GET', 'PUT', 'DELETE'])
     def services (self, request):
         try:
             if request.method == 'POST':
@@ -416,31 +416,52 @@ class SuperAdminApi(ModelViewSet):
                 validator = uc.requireFeildValidation(request.data, requireFeild)
                 if not validator['status']:
                     return Response({"status": False, "error": validator['message']}, status=400)
-                # fetch_vehicleCat = VehicleCategory.objects.filter(id = request.data['vehicle_cat_id']).first()
-                # if not fetch_vehicleCat:
-                #     return Response({'status': False, 'error': "vehicle vategory not exists "})
                 ser = AddServicesSerializer(data= request.data, context = request.data['vehicle_cat_id'])
                 if ser.is_valid():
                     ser.save()
                     return Response({"status": True, "message": "Added Successfully"}, status=400)
                 return Response({"status": False, "error": ser.errors}, status=400)
+            
             if request.method == 'GET':
                 requireFeild = ['city_id']
                 validator = uc.requireFeildValidation(request.data, requireFeild)
                 if validator ['status']:
-                    list_cat = VehicleCategory.objects.filter(city = request.data['city_id']).values('id','title')
+                    # get the list of vehicle category in the city
+                    list_cat = VehicleCategory.objects.filter(city = request.data['city_id']).values('id','title', 'description', 'city')
                     if list_cat:
-                        list = []
-                        for i in  list_cat:
-                            print(i['id'] ,"  -  ", i['title'])
-                            fetch_services_list = Service.objects.filter(vehicle_category = i['id']).values('title')
-                            print(fetch_services_list)
-                            # list[''] = fetch_services_list
-                        print(list)
-                        return Response({"data": str(list_cat)})        
-                pass
+                        result = []
+                        for category in list_cat:
+                            category_data = {
+                                'vehicle_category_id': category['id'],
+                                "vehicle_category_title": category['title'],
+                                'services': []
+                            }
+                            #  get the services provided by vehicle category
+                            services_list = Service.objects.filter(vehicle_category = category['id']).values('id','title','description')
+                            for service in services_list:
+                                service_data = {
+                                'service_id': service['id'],
+                                'service_name': service['title'],
+                                'service_description' : service['description']
+                                }
+                                category_data['services'].append(service_data)                                
+                            result.append(category_data)        
+                        return Response({"status": True,"data": result}, status= 200)
+                    return Response({"status": False,"error": "Invalid City ID "}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)         
+            
             if request.method == 'PUT':
-                pass
+                requireFeild = ['service_id', 'title', 'description']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    fetch_service = Service.objects.filter(id = request.data['service_id']).first()
+                    if fetch_service:
+                        ser = EditServiceSerializer(instance= fetch_service, data= request.data, context = {'service_id': request.data['service_id']})
+                        if ser.is_valid():
+                            return Response({"status": True,"data": ser.data}, status= 200)                   
+                        return Response({"status": False, "error": ser.errors}, status=400)                 
+                    return Response({"status": False, "error": "Service not found . . . "}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)         
             if request.method == 'DELETE':
                 pass
         except Exception as e:

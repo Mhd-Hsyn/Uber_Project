@@ -148,4 +148,20 @@ class AddServicesSerializer(serializers.ModelSerializer):
 
         return Service.objects.create(vehicle_category = fetch_cat, title = title, description = description)
 
+
+class EditServiceSerializer(serializers.ModelSerializer):
+    class Meta :
+        model = Service
+        fields = '__all__'
+    
+    def update(self, instance, validated_data):
+        title = validated_data['title'].lower()
+        service_id = self.context['service_id']
+        if not instance:
+            raise serializers.ValidationError("Service not found !")
         
+        check_services =  Service.objects.filter(vehicle_category = instance.vehicle_category , title = title).first()
+        if check_services:
+            raise serializers.ValidationError(f"{title} Service already exists in {check_services.vehicle_category}")
+        
+        return instance
