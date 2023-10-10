@@ -98,7 +98,7 @@ class Cost(BaseModel):
     service = models.ForeignKey(Service, on_delete=models.CASCADE, blank= True, null= True)
     
     def __str__(self) -> str:
-        return str(self.title)
+        return str(self.service)
 
 # Captain side 
 class Captain(BaseModel):

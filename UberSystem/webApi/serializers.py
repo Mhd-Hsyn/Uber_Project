@@ -152,16 +152,54 @@ class AddServicesSerializer(serializers.ModelSerializer):
 class EditServiceSerializer(serializers.ModelSerializer):
     class Meta :
         model = Service
-        fields = '__all__'
+        fields = ['id', 'title', 'description', 'vehicle_category']
     
-    def update(self, instance, validated_data):
-        title = validated_data['title'].lower()
-        service_id = self.context['service_id']
-        if not instance:
+    def validate_title(self, value):
+        title = value.lower()
+        if not self.instance:
             raise serializers.ValidationError("Service not found !")
         
-        check_services =  Service.objects.filter(vehicle_category = instance.vehicle_category , title = title).first()
+        check_services =  Service.objects.filter(vehicle_category = self.instance.vehicle_category , title = title).first()
         if check_services:
             raise serializers.ValidationError(f"{title} Service already exists in {check_services.vehicle_category}")
         
+        return title
+
+    def update(self, instance, validated_data):
+        instance.title = validated_data['title'].lower() 
+        instance.description = validated_data['description']
+        instance.save()
         return instance
+
+class AddCostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cost
+        exclude = ['created_at', 'updated_at']
+    
+    def validate_service(self, value):
+        fetch_cost= Cost.objects.filter(service = value).first()
+        if fetch_cost:
+            raise serializers.ValidationError(f"Cost for {fetch_cost.service.title} Service in {fetch_cost.service.vehicle_category.title} Category in {fetch_cost.service.vehicle_category.city.city} City already exists ")
+        return value
+
+class EditCostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cost
+        fields = ['id', 'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage']
+    
+    def validate(self, attrs):
+        for key, value in attrs.items():
+            if int(value) == 0 :
+                raise serializers.ValidationError(f"{key} should not be 0")
+        return super().validate(attrs)
+    
+    def update(self, instance, validated_data):
+        if not instance:
+            raise serializers.ValidationError("instance not available")
+        instance.initial_cost = validated_data['initial_cost']
+        instance.price_per_km = validated_data['price_per_km']
+        instance.waiting_cost = validated_data['waiting_cost']
+        instance.profit_percentage = validated_data['profit_percentage']
+        instance.save()
+        return instance 
+    

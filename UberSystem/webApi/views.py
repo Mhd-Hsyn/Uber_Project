@@ -458,11 +458,83 @@ class SuperAdminApi(ModelViewSet):
                     if fetch_service:
                         ser = EditServiceSerializer(instance= fetch_service, data= request.data, context = {'service_id': request.data['service_id']})
                         if ser.is_valid():
+                            ser.save()
                             return Response({"status": True,"data": ser.data}, status= 200)                   
                         return Response({"status": False, "error": ser.errors}, status=400)                 
                     return Response({"status": False, "error": "Service not found . . . "}, status=400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)         
             if request.method == 'DELETE':
-                pass
+                requireFeild = ['service_id']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    fetch_service = Service.objects.filter(id = request.data ['service_id']).first()
+                    if fetch_service:
+                        fetch_service.delete()
+                        return Response({"status": True,"message": f"{fetch_service.title} Service deleted successfully "}, status= 200)                   
+                    return Response({"status": False, "error": "Service not found . . . "}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status= 400)
+    
+    @action (detail= False, methods=['POST', 'GET', 'DELETE', 'PUT'])
+    def cost(self, request):
+        try:
+            if request.method == 'POST':
+                data = request.data
+                required_feild = ['service' ,'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage']
+                validator = uc.requireFeildValidation(data, required_feild)
+                if validator['status']:
+                    ser = AddCostSerializer(data= data)
+                    if ser.is_valid():
+                        ser.save()
+                        return Response({"status": True,"message": ser.data}, status= 200)                   
+                    return Response({"status": False, "error": ser.errors}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+
+            if request.method == 'GET':
+                required_feild = ['service']
+                data = request.data
+                validator = uc.requireFeildValidation(data, required_feild)
+                if validator['status']:
+                    fetch_cost = Cost.objects.filter(service = data['service']).first()
+                    if fetch_cost:
+                        ser = AddCostSerializer(fetch_cost, many = False)
+                        return Response({"status": True,'city': fetch_cost.service.vehicle_category.city.city,'service_name': fetch_cost.service.title, 'vehicle_category': fetch_cost.service.vehicle_category.title ,"Cost": ser.data}, status= 200)                   
+                    return Response({"status": False, "error": "Cost not found for this service "}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+
+            if request.method == 'PUT':
+                data = request.data
+                required_feild = ['cost' ,'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage']
+                validator = uc.requireFeildValidation(data, required_feild)
+                if validator['status']:
+                    fetch_cost = Cost.objects.filter(id = data['cost']).first()
+                    if fetch_cost:
+                        ser = EditCostSerializer(instance=fetch_cost, data= data)
+                        if ser.is_valid():
+                            ser.save()
+                            return Response({"status": True, 'city': fetch_cost.service.vehicle_category.city.city,'service_name': fetch_cost.service.title, 'vehicle_category': fetch_cost.service.vehicle_category.title, "cost": ser.data}, status= 200)                   
+                        return Response({"status": False, "error": ser.errors}, status=400)
+                    return Response({"status": False, "error": "Cost not found . . ."}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+
+            if request.method == 'DELETE':
+                data = request.data
+                required_feild = ['cost']
+                validator = uc.requireFeildValidation(data, required_feild)
+                if validator['status']:
+                    fetch_cost = Cost.objects.filter(id = data['cost']).first()
+                    if fetch_cost:
+                        fetch_cost.delete()
+                        return Response({"status": True,"message": f'Cost of {fetch_cost.service.title} Service in {fetch_cost.service.vehicle_category.title} Vehicle in {fetch_cost.service.vehicle_category.city.city} City Deleted Successfully . '}, status= 200)                   
+                    return Response({"status": False, "error": "Cost not found . . ."}, status=400)
+                return Response({"status": False, "error": str(validator['message'])}, status=400)
+
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status= 400)
+    
+
+######################################################################################
+
+#     ````````````````````````````````   City Admin and Branch Admin  ````````````````````````````
+

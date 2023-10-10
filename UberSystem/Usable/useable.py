@@ -67,6 +67,6 @@ def checkPasswordValidation(fetch_user, password):
     except Exception as e:
         return {"status": False, "message": str(e)}
     
-    # Tokens 
+    # Tokens
 
     
