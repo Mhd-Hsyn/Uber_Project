@@ -51,20 +51,25 @@ class AddStaffSerializer(serializers.ModelSerializer):
         model = Admin
         fields = ['fname', 'lname','email' ,'contact', 'address', 'password', 'city', 'role']
     
-    def validate(self, data):
-        city_id = self.context['city_id']
-        if Admin.objects.filter(email = data['email']).first():
-            raise serializers.ValidationError("Email already exists ")
-        if not uc.checkpasslen(data['password']):
-            raise serializers.ValidationError("Password Length must be greater than 8")
-        if not uc.checkEmailPattern(data['email']):
+    def validate_email(self, value):
+        if not uc.checkEmailPattern(value):
             raise serializers.ValidationError("Wrong email pattern")
-        
+        if Admin.objects.filter(email = value).first():
+            raise serializers.ValidationError(f"{value} This email already exists ")
+        return value
+    
+    def validate_password(self, value):
+        if not uc.checkpasslen(value):
+            raise serializers.ValidationError("Password Length must be greater than 8")
+        return value
+
+    def validate_role(self, role):
+        city_id = self.context['city_id']
         fetch_city = Place.objects.filter(id=city_id).first()
-        if data['role'] == "city-admin":
-            if Admin.objects.filter(role=data['role'], city=fetch_city).exists():
+        if role == "city-admin":
+            if Admin.objects.filter(role=role, city=fetch_city).exists():
                 raise serializers.ValidationError(f"City Admin for {fetch_city.city}, {fetch_city.country} already exists")
-        return data
+        return role
 
     def create(self, validated_data):
         validated_data['password'] = handler.hash(validated_data['password'])
@@ -73,7 +78,7 @@ class AddStaffSerializer(serializers.ModelSerializer):
 class GetStaffByCitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Admin
-        fields = ['id','role','email' , 'contact', 'profile', 'address']
+        fields = ['id','role','email' , 'contact', 'profile', 'address', 'created_at', 'updated_at']
 
 class AddVehicleCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -203,3 +208,29 @@ class EditCostSerializer(serializers.ModelSerializer):
         instance.save()
         return instance 
     
+
+
+######################################################################################
+
+#     ````````````````````````````````   City Admin and Branch Admin  ````````````````````````````
+
+
+class AdminLoginSerializer(serializers.ModelSerializer):
+    email = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = Admin
+        fields = ["email", "password"]
+
+    def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
+        fetch_user = Admin.objects.filter(email=email).first()
+        if not fetch_user:
+            raise serializers.ValidationError("Email not found . . .")
+        check_pass = handler.verify(password, fetch_user.password)
+        if not check_pass:
+            raise serializers.ValidationError("Wrong Password !!!")
+        attrs["fetch_user"] = fetch_user
+        return attrs
