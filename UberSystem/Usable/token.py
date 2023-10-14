@@ -49,7 +49,7 @@ def SuperAdminDeleteToken(fetchuser, request):
 
 ######################################################################################
 
-#     ```````````````````````````````` STAFF  City Admin and Branch Admin  ````````````````````````````
+#     ```````````````````````````````` STAFF  City Admin  ````````````````````````````
 
 
 def StaffGenerateToken(fetchuser):

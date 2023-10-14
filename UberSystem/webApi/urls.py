@@ -9,7 +9,8 @@ router_superadmin.register(r"api", SuperAdminApi, basename="api")
 
 router_staff = DefaultRouter()
 router_staff.register(r"auth", StaffAuthViewset, basename="auths")
-router_staff.register(r"api", StaffApi, basename="api")
+router_staff.register(r'api', StaffApi, basename= 'api')
+router_staff.register(r"cityadminapi", CityAdminApi, basename="adminapi")
 
 
 urlpatterns = [

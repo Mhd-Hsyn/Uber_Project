@@ -13,7 +13,7 @@ from .models import *
 from Usable import useable as uc
 from Usable import token as _auth
 from Usable import emailpattern as verified
-from Usable.permissions import SuperAdminPermission, StaffPermission
+from Usable.permissions import *
 
 import random
 
@@ -270,7 +270,7 @@ class SuperAdminApi(ModelViewSet):
                     if ser.is_valid():
                         ser.save()
                         return Response({"status": True, "message": "Added Successfully"})
-                    return Response({"status": False, "message": str(ser.errors)}, status= 400)
+                    return Response({"status": False, "message": ser.errors}, status= 400)
                 return Response({"status": False, "error": str(validator['message'])}, status= 400)
             
             if request.method == "GET":
@@ -363,7 +363,7 @@ class SuperAdminApi(ModelViewSet):
                     if ser.is_valid():
                         ser.save()
                         return Response({"status": True, "message": "Added successfully"})
-                    return Response({"status": False, "error": str(ser.errors)}, status=400)
+                    return Response({"status": False, "error": ser.errors}, status=400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)
 
             elif request.method == "GET":
@@ -389,7 +389,7 @@ class SuperAdminApi(ModelViewSet):
                     if ser.is_valid():
                         ser.save()
                         return Response({"status": True, "message": f"{request.data['title']} Updated in city successfully !!!!"})
-                    return Response({"status": False, "error": str(ser.errors)}, status=400)
+                    return Response({"status": False, "error": ser.errors}, status=400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)
 
             elif request.method == "DELETE":
@@ -532,8 +532,8 @@ class SuperAdminApi(ModelViewSet):
     
 
 ######################################################################################
-
-#     ```````````````````````````````` STAFF  City Admin and Branch Admin  ````````````````````````````
+#                                                Auth System
+#     ```````````````````````````````` STAFF ( Both City Admin and Branch Admin ) ````````````````````````````
 
 
 class StaffAuthViewset(ModelViewSet):
@@ -673,6 +673,9 @@ class StaffAuthViewset(ModelViewSet):
             return Response({"status": False, "message": str(e)}, status=400)
 
 
+#     `````````````````````````` ( Both City Admin and Branch Admin ) ````````````````````````````
+#                         Staff common Api  i.e. profile view and update       
+
 class StaffApi(ModelViewSet):
     permission_classes = [StaffPermission]
 
@@ -693,6 +696,8 @@ class StaffApi(ModelViewSet):
             email = decoded_token["email"]
             fetchuser = Admin.objects.filter(email=email).first()
             if request.method == "GET":
+                profile_url = fetchuser.profile.url if fetchuser.profile else None
+
                 payload = {
                     "id": str(fetchuser.id),
                     'role':fetchuser.role,
@@ -701,7 +706,7 @@ class StaffApi(ModelViewSet):
                     "email": fetchuser.email,
                     "address": fetchuser.address,
                     "contact": fetchuser.contact,
-                    "profile": fetchuser.profile.url,
+                    "profile": profile_url,
                 }
                 return Response({"status": True, "data": payload})
 
@@ -718,6 +723,8 @@ class StaffApi(ModelViewSet):
                     if request.FILES.get("profile"):
                         fetchuser.profile = request.FILES["profile"]
                     fetchuser.save()
+                    # check the profile image
+                    profile_url = fetchuser.profile.url if fetchuser.profile else None
                     payload = {
                         "id": str(fetchuser.id),
                         "fname": fetchuser.fname,
@@ -725,7 +732,7 @@ class StaffApi(ModelViewSet):
                         "email": fetchuser.email,
                         "contact": fetchuser.contact,
                         "address": fetchuser.address,
-                        "profile": fetchuser.profile.url,
+                        "profile": profile_url,
                     }
                     return Response(
                         {
@@ -768,3 +775,71 @@ class StaffApi(ModelViewSet):
             return Response({"status": False, "error": validator["message"]}, status=400)
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status=400)
+
+
+
+# ````````````````````````````````````   City Admin Rights   ````````````````````````````  
+
+class CityAdminApi(ModelViewSet):
+    permission_classes = [CityAdminPermission]
+
+    @action (detail= False, methods= ['POST','GET', 'PUT', 'DELETE'])
+    def branch_managers(self, request):
+        try:
+            if request.method == 'POST':
+                requireFeilds = ['fname', 'lname', 'email', 'password', 'contact', 'address']
+                validator = uc.requireFeildValidation(request.data, requireFeilds)
+                if validator['status']:
+                    token = request.auth
+                    fetch_admin = Admin.objects.filter(id = token['id']).first()
+                    ser = AddManagerSerializer(data= request.data, context= {"city": fetch_admin.city})
+                    if ser.is_valid():
+                        ser.save()
+                        data = ser.data
+                        del data['password']
+                        return Response({"status": True, "message": f"Branch Manager Added Successfully in {fetch_admin.city.city} City", "data_of_branch_manager": data}, status= status.HTTP_201_CREATED)
+                    return Response({"status": False, "error": ser.errors}, status= 400)
+                return Response({"status": False, "error": validator['message']}, status= 400)
+
+            elif request.method == 'GET':
+                token = request.auth
+                fetch_admin = Admin.objects.filter(id = token['id']).first()
+                fetch_staff = Admin.objects.filter(city = fetch_admin.city, role = "branch-manager")
+                ser = GetManagerSerializer(fetch_staff, many= True)
+                return Response({"status": True, "city": fetch_admin.city.city, "role": "branch-manager", "data": ser.data}, status=200)    
+
+            elif request.method == 'PUT':
+                requireFeilds = ['manager_id','fname', 'lname', 'contact', 'address']
+                validator = uc.requireFeildValidation(request.data, requireFeilds)
+                if validator['status']:      
+                    fetch_manager = Admin.objects.filter(id= request.data['manager_id']).first()
+                    if fetch_manager :
+                        ser = EditManagerSerializer(instance= fetch_manager, data= request.data, context = {'admin_id': request.auth['id']})
+                        if ser.is_valid():
+                            ser.save()
+                            return Response({"status": True, "message": "Updated Successfully" ,"data": ser.data}, status= 200)
+                        return Response({"status": False, "error": ser.errors}, status= 400)
+                    return Response({"status": False, "error": "Manager not exists"}, status= 400)
+                return Response({"status": False, "error": validator['message']}, status= 400)
+
+            elif request.method == 'DELETE':
+                requireFeilds = ['manager_id']
+                validator = uc.requireFeildValidation(request.data, requireFeilds)
+                if validator ['status']:
+                    fetch_manager = Admin.objects.filter(id = request.data['manager_id']).first()
+                    if fetch_manager:
+                        fetch_admin = Admin.objects.filter(id = request.auth['id']).first()
+                        if fetch_manager.city == fetch_admin.city:
+                            fetch_manager.delete()
+                            return Response ({"status": True, "message": f"{fetch_manager.role} {fetch_manager.fname} {fetch_manager.lname} deleted successfully from {fetch_manager.city.city} City "}, status= 200)
+                        return Response({"status": False, "error": f"You can't delete this manager because his city is {fetch_manager.city.city} and You are {fetch_admin.city.city} city {fetch_admin.role}"}, status= 400)
+                    return Response({"status": False, "error": "Manager not exists"}, status= 400)
+                return Response({"status": False, "error": validator['message']}, status= 400)
+
+            else:
+                return Response({"status": False, "error": "Other request not allowed ."}, status=400)
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status=400)
+
+
+

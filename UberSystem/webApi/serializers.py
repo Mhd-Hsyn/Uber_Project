@@ -215,13 +215,9 @@ class EditCostSerializer(serializers.ModelSerializer):
 #     ````````````````````````````````   City Admin and Branch Admin  ````````````````````````````
 
 
-class AdminLoginSerializer(serializers.ModelSerializer):
+class AdminLoginSerializer(serializers.Serializer):
     email = serializers.CharField()
     password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = Admin
-        fields = ["email", "password"]
 
     def validate(self, attrs):
         email = attrs.get("email")
@@ -234,3 +230,72 @@ class AdminLoginSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Wrong Password !!!")
         attrs["fetch_user"] = fetch_user
         return attrs
+
+class AddManagerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Admin
+        fields = ["id", "role" ,"fname", "lname", "email", "password", "contact", "address", "city", "profile"]
+
+    def validate_email(self, email):
+        fetch_admin =  Admin.objects.filter(email= email).exists()
+        if fetch_admin:
+            raise serializers.ValidationError(f"Email already exists as a {fetch_admin.role}")  
+        if not uc.checkEmailPattern(email):
+            raise serializers.ValidationError("Wrong Email Pattern")
+        return email
+    
+    def validate_password(self,password):
+        if not uc.checkpasslen(password):
+            raise serializers.ValidationError("Password Length must be greater than 8")
+        return password
+    
+    def validate(self, attrs):
+        profile_url = attrs.get('profile', None)
+        data = {
+            'city': self.context['city'],
+            "role": "branch-manager",
+            "fname": attrs['fname'],
+            "lname": attrs['lname'],
+            "email": attrs['email'],
+            "password": handler.hash(attrs['password']),
+            'contact': attrs['contact'],
+            'address': attrs['address'],
+            'profile': profile_url,
+
+        }
+        return data
+
+
+class GetManagerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Admin
+        fields = ["id", "role" ,"fname", "lname", "email", "contact", "address", "profile"]
+    
+
+class EditManagerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Admin
+        fields = ['id','role','fname', 'lname', 'contact', 'address', 'profile']
+    
+    def validate_profile(self, profile):
+        if profile is not None:
+            self.instance.profile = profile
+            self.instance.save() 
+        return None
+
+    def validate(self, attrs):
+        fetch_admin = Admin.objects.filter(id = self.context['admin_id']).first()
+        if not fetch_admin.city == self.instance.city:
+            raise serializers.ValidationError(f"You are {fetch_admin.city.city} {fetch_admin.role} you can't edit {self.instance.city.city} city {self.instance.role}")
+        return super().validate(attrs)
+    
+
+    def update(self, instance, validated_data):
+        if not instance:
+            raise serializers.ValidationError("Not found") 
+        instance.fname = validated_data['fname']
+        instance.lname = validated_data['lname']
+        instance.contact = validated_data['contact']
+        instance.address = validated_data['address']
+        instance.save()
+        return instance
