@@ -893,10 +893,17 @@ class CityAdminApi(ModelViewSet):
                         serializer.save()
                         return Response ({"status": True, "message": 'Vehicle categorgy added', "data": serializer.data}, status= 201)
                     return Response ({"status": False, "error": serializer.errors}, status= 400)
+            
             if request.method == 'GET':
-                pass
+                fetch_admin = Admin.objects.filter(id = request.auth['id']).first()
+                if fetch_admin:
+                    print(fetch_admin.city)
+                    fetch_categories = VehicleCategory.objects.filter(city = fetch_admin.city)
+                    serializer = AddVehicleCat_Serializer(fetch_categories, many = True)
+                    return Response ({"status": True, "city": f'{fetch_admin.city}', "Vehicle_Categories": serializer.data}, status= 201)
+                    
             if request.method == 'PUT':
-                pass 
+                pass
             if request.method == 'DELETE':
                 pass
         except Exception as e:

@@ -304,7 +304,7 @@ class EditManagerSerializer(serializers.ModelSerializer):
 class AddVehicleCat_Serializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleCategory
-        fields = ['city','title', 'description']
+        fields = ['id','title', 'description']
 
     def validate(self, data):
         fetch_admin = self.context.get("fetch_admin")
@@ -322,3 +322,7 @@ class AddVehicleCat_Serializer(serializers.ModelSerializer):
         
         return data
 
+# class GetVehicleCat_Serializer(serializers.ModelSerializer):
+    # class Meta:
+        # model = VehicleCategory
+        # fields = ['city']
