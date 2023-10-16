@@ -298,4 +298,27 @@ class EditManagerSerializer(serializers.ModelSerializer):
         instance.contact = validated_data['contact']
         instance.address = validated_data['address']
         instance.save()
-        return instance
+        return instance    
+
+
+class AddVehicleCat_Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCategory
+        fields = ['city','title', 'description']
+
+    def validate(self, data):
+        fetch_admin = self.context.get("fetch_admin")
+        requireFields = ['title', 'description']
+        validator = uc.requireFeildValidation(data, requireFields) 
+        if not validator['status']:
+            raise serializers.ValidationError({"Feild_error" :validator["message"]})
+        title = data['title'].lower()
+        city = fetch_admin.city
+        check_cat = VehicleCategory.objects.filter(title = title, city = city).first()
+        if check_cat:
+            raise serializers.ValidationError ({"title": f"{title} Category already exists in {city} City"})
+        data['city'] = city
+        data['title'] = title
+        
+        return data
+

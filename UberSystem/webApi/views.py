@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from passlib.hash import django_pbkdf2_sha256 as handler
 from decouple import config
 from operator import itemgetter
+from django.conf import settings
 
 from .serializers import *
 from .models import *
@@ -56,8 +57,10 @@ class SuperAdminAuthViewset(ModelViewSet):
                 return Response({"status": False, "msg": ser.errors}, status=400)
             return Response({"status": False, "message": str(validator['message'])}, status= status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+            
     @action(detail= False, methods= ['POST'])
     def forgotPassSendMail(self, request):
         try:
@@ -94,7 +97,9 @@ class SuperAdminAuthViewset(ModelViewSet):
                 return Response({"status": False, "error": "No User found in this email"},status=status.HTTP_404_NOT_FOUND,)
             return Response({"status": False, "error": "email required"})
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
         
     @action(detail=False, methods=["POST"])
     def checkOtpToken(self, request):
@@ -132,8 +137,10 @@ class SuperAdminAuthViewset(ModelViewSet):
                 return Response({"status": False, "error": "User not exist"}, status=404)
             return Response({"status": False, "error": feild_status["message"]})
         except Exception as e:
-            return Response({"status": False, "message": str(e)}, status=400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+            
     @action(detail=False, methods=["POST"])
     def resetPassword(self, request):
         try:
@@ -164,8 +171,10 @@ class SuperAdminAuthViewset(ModelViewSet):
                 return Response({"status": False, "error": "User Not Exist !!!"}, status= 404)
             return Response({"status": False, "error": requiredFeild_status["message"]}, status= 400)
         except Exception as e:
-            return Response({"status": False, "message": str(e)}, status=400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+            
 # New Class use permission_classes    Admin Profile / change password / Logout
 class SuperAdminApi(ModelViewSet):
     permission_classes = [SuperAdminPermission]
@@ -178,8 +187,10 @@ class SuperAdminApi(ModelViewSet):
             _auth.SuperAdminDeleteToken(fetchuser, request)
             return Response({"status": True, "message": "Logout Successfully"}, status=200)
         except Exception as e:
-            return Response({"status": False, "error": f"Something wrong {str(e)}"}, status=400)
-
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+        
     @action(detail=False, methods=["GET", "PUT"])
     def profile(self, request):
         try:
@@ -227,7 +238,9 @@ class SuperAdminApi(ModelViewSet):
                     )
                 return Response({"status": False, "error": validator["message"]},status=status.HTTP_400_BAD_REQUEST,)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
 
     @action(detail=False, methods=["POST"])
     def changePass(self, request):
@@ -257,8 +270,10 @@ class SuperAdminApi(ModelViewSet):
                 return Response({"status": False, "error": "Old Password not verified"}, status=400)
             return Response({"status": False, "error": validator["message"]}, status=400)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
-        
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+                
     @action(detail=False, methods=["POST", "PUT", "DELETE", "GET"])
     def cities(self, request):
         try:
@@ -308,7 +323,10 @@ class SuperAdminApi(ModelViewSet):
                 return Response({"status": False, "error": validator['message']}, status= 400)
 
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status= 400)
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+        
 
     @action(detail= False, methods=['POST', 'GET', 'DELETE'])
     def staff(self, request):
@@ -349,8 +367,9 @@ class SuperAdminApi(ModelViewSet):
                     return Response({"status": False, "error": "staff doesnot exists"}, status= 400)
                 return Response({"status": False, "error": validator['message']}, status= 400)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status= 400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)    
     
     @action(detail=False, methods=['POST', 'GET', 'PUT', "DELETE"])
     def vehicleCategory(self, request):
@@ -403,8 +422,10 @@ class SuperAdminApi(ModelViewSet):
                     return Response({"status": False, "error": "Invalid id Vehicle category not exists"}, status=400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status= 400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+            
     @action(detail= False, methods= ['POST', 'GET', 'PUT', 'DELETE'])
     def services (self, request):
         try:
@@ -471,7 +492,9 @@ class SuperAdminApi(ModelViewSet):
                     return Response({"status": False, "error": "Service not found . . . "}, status=400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status= 400)
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
     
     @action (detail= False, methods=['POST', 'GET', 'DELETE', 'PUT'])
     def cost(self, request):
@@ -528,7 +551,9 @@ class SuperAdminApi(ModelViewSet):
                 return Response({"status": False, "error": str(validator['message'])}, status=400)
 
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status= 400)
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
     
 
 ######################################################################################
@@ -562,8 +587,10 @@ class StaffAuthViewset(ModelViewSet):
                 return Response({"status": False, "msg": ser.errors}, status=400)
             return Response({"status": False, "message": validator['message']}, status= status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+            
     @action(detail= False, methods= ['POST'])
     def forgotPassSendMail(self, request):
         try:
@@ -600,8 +627,10 @@ class StaffAuthViewset(ModelViewSet):
                 return Response({"status": False, "error": "No User found in this email"},status=status.HTTP_404_NOT_FOUND,)
             return Response({"status": False, "error": "email required"})
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
-        
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+                
     @action(detail=False, methods=["POST"])
     def checkOtpToken(self, request):
         try:
@@ -638,8 +667,10 @@ class StaffAuthViewset(ModelViewSet):
                 return Response({"status": False, "error": "User not exist"}, status=404)
             return Response({"status": False, "error": feild_status["message"]})
         except Exception as e:
-            return Response({"status": False, "message": str(e)}, status=400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+            
     @action(detail=False, methods=["POST"])
     def resetPassword(self, request):
         try:
@@ -670,8 +701,9 @@ class StaffAuthViewset(ModelViewSet):
                 return Response({"status": False, "error": "User Not Exist !!!"}, status= 404)
             return Response({"status": False, "error": requiredFeild_status["message"]}, status= 400)
         except Exception as e:
-            return Response({"status": False, "message": str(e)}, status=400)
-
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
 
 #     `````````````````````````` ( Both City Admin and Branch Admin ) ````````````````````````````
 #                         Staff common Api  i.e. profile view and update       
@@ -744,8 +776,10 @@ class StaffApi(ModelViewSet):
                     )
                 return Response({"status": False, "error": validator["message"]},status=status.HTTP_400_BAD_REQUEST,)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
-    
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
+            return Response(message, status=500)
+            
     @action(detail=False, methods=["POST"])
     def changePass(self, request):
         try:
@@ -774,8 +808,11 @@ class StaffApi(ModelViewSet):
                 return Response({"status": False, "error": "Old Password not verified"}, status=400)
             return Response({"status": False, "error": validator["message"]}, status=400)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
-
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(
+                message="Internal server error"
+            )
+            return Response(message, status=500)
 
 
 # ````````````````````````````````````   City Admin Rights   ````````````````````````````  
@@ -839,7 +876,33 @@ class CityAdminApi(ModelViewSet):
             else:
                 return Response({"status": False, "error": "Other request not allowed ."}, status=400)
         except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(
+                message="Internal server error"
+            )
+            return Response(message, status=500)
 
-
-
+    @action(detail= False, methods= ['POST', 'GET', 'PUT', 'DELETE'])
+    def vehicle_Category(self, request, *args, **kwargs):
+        try:
+            if request.method == 'POST':
+                fetch_admin = Admin.objects.filter(id = request.auth['id']).first()
+                if fetch_admin:
+                    serializer = AddVehicleCat_Serializer(data= request.data, context = {'fetch_admin': fetch_admin})
+                    if serializer.is_valid():
+                        serializer.save()
+                        return Response ({"status": True, "message": 'Vehicle categorgy added', "data": serializer.data}, status= 201)
+                    return Response ({"status": False, "error": serializer.errors}, status= 400)
+            if request.method == 'GET':
+                pass
+            if request.method == 'PUT':
+                pass 
+            if request.method == 'DELETE':
+                pass
+        except Exception as e:
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(
+                message="Internal server error"
+            )
+            return Response(message, status=500)
+        
