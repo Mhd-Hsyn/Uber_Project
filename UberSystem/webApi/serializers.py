@@ -379,12 +379,19 @@ class EditService_Serializer(serializers.ModelSerializer):
         fetch_service = Service.objects.filter(title = title, vehicle_category= self.instance.vehicle_category).first()
         if fetch_service:
             print(fetch_service)
-            raise serializers.ValidationError({"title": f"{title} service already provided by {fetch_service.vehicle_category.title}"})
+            raise serializers.ValidationError(f"{title} service already provided by {fetch_service.vehicle_category.title}")
         return title
     
     # handle for partial update PATCH
     def validate(self, attrs):
         title = attrs.get('title', self.instance.title)
-        description = attrs.get('description', self.description)
-        
-        return super().validate(attrs)
+        description = attrs.get('description', self.instance.description)
+        attrs['title'] = title
+        attrs['description'] = description
+        return attrs
+    
+    def update(self, instance, validated_data):
+        instance.title = validated_data['title']
+        instance.description = validated_data['description']
+        instance.save()
+        return instance

@@ -962,6 +962,23 @@ class CityAdminApi(ModelViewSet):
                     return Response({"status": False, "vehicle_category": "ID doesnot exist"}, status= 400)
                 return Response ({"status": False, "field_error": validator['message']}, status= 400)
                                
+            if request.method == 'PATCH':
+                requiredFeild = ['service_id', 'description']
+                validator = uc.requireFeildValidation(request.data, requiredFeild)
+                if validator['status']:
+                    fetch_service = Service.objects.filter(id = request.data['service_id']).first() 
+                    if fetch_service:
+                        ser = EditService_Serializer(instance= fetch_service, data= request.data, partial= True)
+                        if ser.is_valid():
+                            ser.save()
+                            return Response ({"status": True, "message": 'Vehicle Service Updated', "data": ser.data}, status= 201)
+                        return Response ({"status": False, "message": ser.errors}, status= 400)
+                    return Response({"status": False, "service": "ID doesnot exist"}, status= 400)
+                return Response ({"status": False, "field_error": validator['message']}, status= 400)
+                
+            if request.method == 'DELETE':
+                pass
+
         except Exception as e:
             message = {"status": False}
             message.update(message=str(e)) if settings.DEBUG else message.update(
