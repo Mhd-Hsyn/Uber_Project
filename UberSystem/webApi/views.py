@@ -932,3 +932,58 @@ class CityAdminApi(ModelViewSet):
             )
             return Response(message, status=500)
         
+
+    @action(detail= False, methods= ['POST', 'GET', 'PATCH', 'DELETE'])
+    def services(self, request):
+        try:
+            if request.method == 'POST':
+                requiredFeild = ['vehicle_category', 'title', 'description']
+                validator = uc.requireFeildValidation(request.data, requiredFeild)
+                if validator['status']:
+                    fetch_cat = VehicleCategory.objects.filter(id = request.data['vehicle_category']).first() 
+                    if fetch_cat:
+                        ser = AddServices_Serializer(data= request.data)
+                        if ser.is_valid():
+                            ser.save()
+                            return Response ({"status": True, "message": 'Vehicle Services Added', "vehicle_category": fetch_cat.title, "data": ser.data}, status= 201)
+                        return Response ({"status": False, "message": ser.errors}, status= 400)
+                    return Response({"status": False, "vehicle_category": "ID doesnot exist"}, status= 400)
+                return Response ({"status": False, "field_error": validator['message']}, status= 400)
+                
+                
+            
+            if request.method == 'GET':
+                requiredFeild = ['vehicle_category']
+                validator = uc.requireFeildValidation(request.data, requiredFeild)
+                if validator['status']:
+                    fetch_cat = VehicleCategory.objects.filter(id = request.data['vehicle_category']).first() 
+                    if fetch_cat:
+                        fetch_services = Service.objects.filter(vehicle_category = fetch_cat)
+                        ser = AddServices_Serializer(fetch_services, many = True)
+                        return Response ({"status": True, "Vehicle_category": fetch_cat.title, "city": fetch_cat.city.city ,"services": ser.data}, status= 201)
+                    return Response({"status": False, "vehicle_category": "ID doesnot exist"}, status= 400)
+                return Response ({"status": False, "field_error": validator['message']}, status= 400)
+                               
+            if request.method == 'PATCH':
+                requiredFeild = ['service_id', 'description']
+                validator = uc.requireFeildValidation(request.data, requiredFeild)
+                if validator['status']:
+                    fetch_service = Service.objects.filter(id = request.data['service_id']).first() 
+                    if fetch_service:
+                        ser = AddServices_Serializer(instance= fetch_service, data= request.data, partial= True)
+                        if ser.is_valid():
+                            ser.save()
+                            return Response ({"status": True, "message": 'Vehicle Service Updated', "data": ser.data}, status= 201)
+                        return Response ({"status": False, "message": ser.errors}, status= 400)
+                    return Response({"status": False, "service": "ID doesnot exist"}, status= 400)
+                return Response ({"status": False, "field_error": validator['message']}, status= 400)
+                
+            if request.method == 'DELETE':
+                pass
+
+        except Exception as e:
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(
+                message="Internal server error"
+            )
+            return Response(message, status=500)

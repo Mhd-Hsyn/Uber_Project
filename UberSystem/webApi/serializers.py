@@ -354,3 +354,37 @@ class EditVehicleCat_Serializer(serializers.ModelSerializer):
         instance.description = validated_data['description']
         instance.save()
         return instance
+
+class AddServices_Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = ['id', 'title', 'description', 'vehicle_category']
+    
+    def validate(self, data):
+        vehicle_category = data['vehicle_category']
+        title = data['title'].lower()
+        fetch_services = Service.objects.filter(vehicle_category= vehicle_category, title= title).first()
+        if fetch_services:
+            raise serializers.ValidationError({"title" :f"{title} Service already exists in {fetch_services.vehicle_category.title} category "})
+        data['title'] = title
+        return data
+    
+class EditService_Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = ['id', 'title', 'description']
+    
+    def validate_title(self, title):
+        title = title.lower()
+        fetch_service = Service.objects.filter(title = title, vehicle_category= self.instance.vehicle_category).first()
+        if fetch_service:
+            print(fetch_service)
+            raise serializers.ValidationError({"title": f"{title} service already provided by {fetch_service.vehicle_category.title}"})
+        return title
+    
+    # handle for partial update PATCH
+    def validate(self, attrs):
+        title = attrs.get('title', self.instance.title)
+        description = attrs.get('description', self.description)
+        
+        return super().validate(attrs)
