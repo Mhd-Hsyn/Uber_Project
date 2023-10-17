@@ -882,30 +882,49 @@ class CityAdminApi(ModelViewSet):
             )
             return Response(message, status=500)
 
-    @action(detail= False, methods= ['POST', 'GET', 'PUT', 'DELETE'])
+    @action(detail= False, methods= ['POST', 'GET', 'PATCH','DELETE'])
     def vehicle_Category(self, request, *args, **kwargs):
         try:
+            fetch_admin = Admin.objects.filter(id = request.auth['id']).first()
+            if not fetch_admin:
+                return Response({"status": False, "error": "Admin is not exists . . ."}, status= 400)
+            
             if request.method == 'POST':
-                fetch_admin = Admin.objects.filter(id = request.auth['id']).first()
-                if fetch_admin:
-                    serializer = AddVehicleCat_Serializer(data= request.data, context = {'fetch_admin': fetch_admin})
-                    if serializer.is_valid():
-                        serializer.save()
-                        return Response ({"status": True, "message": 'Vehicle categorgy added', "data": serializer.data}, status= 201)
-                    return Response ({"status": False, "error": serializer.errors}, status= 400)
+                serializer = AddVehicleCat_Serializer(data= request.data, context = {'fetch_admin': fetch_admin})
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response ({"status": True, "message": 'Vehicle categorgy added', "data": serializer.data}, status= 201)
+                return Response ({"status": False, "error": serializer.errors}, status= 400)
             
             if request.method == 'GET':
-                fetch_admin = Admin.objects.filter(id = request.auth['id']).first()
-                if fetch_admin:
-                    print(fetch_admin.city)
-                    fetch_categories = VehicleCategory.objects.filter(city = fetch_admin.city)
-                    serializer = AddVehicleCat_Serializer(fetch_categories, many = True)
-                    return Response ({"status": True, "city": f'{fetch_admin.city}', "Vehicle_Categories": serializer.data}, status= 201)
-                    
-            if request.method == 'PUT':
-                pass
+                fetch_categories = VehicleCategory.objects.filter(city = fetch_admin.city)
+                serializer = AddVehicleCat_Serializer(fetch_categories, many = True)
+                return Response ({"status": True, "city": f'{fetch_admin.city}', "Vehicle_Categories": serializer.data}, status= 201)
+                              
+            if request.method == 'PATCH':
+                requiredFeilds = ['cat_id', 'description']
+                validator = uc.requireFeildValidation(request.data , requiredFeilds)
+                if validator['status']:
+                    fetch_category = VehicleCategory.objects.filter(id = request.data['cat_id']).first()
+                    # data = {"description": request.data['description']}
+                    ser = EditVehicleCat_Serializer(instance=fetch_category, data= request.data , partial = True)
+                    if ser.is_valid():
+                        ser.save()
+                        return Response({"status": True, "message" : "Updated Successfully", "data": ser.data}, status= 200)
+                    return Response({"staus": False, "error": ser.errors}, status= 400)
+                return Response ({"status": False, "error": validator['message']}, status= 400)
+
             if request.method == 'DELETE':
-                pass
+                requiredFeilds = ['cat_id']
+                validator = uc.requireFeildValidation(request.data , requiredFeilds)
+                if validator['status']:
+                    fetch_category = VehicleCategory.objects.filter(id = request.data['cat_id']).first()
+                    if fetch_category:
+                        fetch_category.delete()
+                        return Response({"status": True, "message" : f"{fetch_category.title} Deleted Successfully from {fetch_category.city.city} City"}, status= 200)
+                    return Response ({"status": False, "error": "Category not exists"}, status= 400)
+                return Response ({"status": False, "error": validator['message']}, status= 400)
+
         except Exception as e:
             message = {"status": False}
             message.update(message=str(e)) if settings.DEBUG else message.update(

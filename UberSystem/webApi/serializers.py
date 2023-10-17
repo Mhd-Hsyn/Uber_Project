@@ -322,7 +322,35 @@ class AddVehicleCat_Serializer(serializers.ModelSerializer):
         
         return data
 
-# class GetVehicleCat_Serializer(serializers.ModelSerializer):
-    # class Meta:
-        # model = VehicleCategory
-        # fields = ['city']
+class EditVehicleCat_Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCategory
+        fields = ['id', 'title', 'description']
+    
+    # if title comes from request.data then validation work
+    def validate_title(self, title):
+        if not self.instance:
+            raise serializers.ValidationError("Category Not found in this ID")
+        title = title.lower()
+        fetch_cat = VehicleCategory.objects.filter(title = title, city = self.instance.city).first()
+        if fetch_cat:
+            raise serializers.ValidationError(f"{title} Category exists in {self.instance.city} city")
+        
+        return title
+    
+    # Use on partial update
+    def validate(self, attrs):
+        if not self.instance:
+            raise serializers.ValidationError({"cat_id" :"Category Not found in this ID"})
+        
+        # Handle the case where certain fields are not present in the data for PATCH
+        title = attrs.get('title', self.instance.title)
+        description = attrs.get('description', self.instance.description)
+
+        return {'title': title, 'description': description}
+
+    def update(self, instance, validated_data):
+        instance.title =  validated_data['title'].lower()
+        instance.description = validated_data['description']
+        instance.save()
+        return instance
