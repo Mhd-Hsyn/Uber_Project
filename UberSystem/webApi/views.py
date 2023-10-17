@@ -977,7 +977,15 @@ class CityAdminApi(ModelViewSet):
                 return Response ({"status": False, "field_error": validator['message']}, status= 400)
                 
             if request.method == 'DELETE':
-                pass
+                requiredFeild = ['service_id']
+                validator = uc.requireFeildValidation(request.data, requiredFeild)
+                if validator['status']:
+                    fetch_service = Service.objects.filter(id = request.data['service_id']).first() 
+                    if fetch_service:
+                        fetch_service.delete()
+                        return Response ({"status": True, "service": fetch_service.title ,"message": f"{fetch_service.title} Service Deleted successfully from {fetch_service.vehicle_category.title} category in {fetch_service.vehicle_category.city.city} city" }, status= 201)
+                    return Response({"status": False, "service": "ID doesnot exist"}, status= 400)
+                return Response ({"status": False, "field_error": validator['message']}, status= 400)
 
         except Exception as e:
             message = {"status": False}
