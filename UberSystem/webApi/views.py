@@ -481,6 +481,7 @@ class SuperAdminApi(ModelViewSet):
                         return Response({"status": False, "error": ser.errors}, status=400)                 
                     return Response({"status": False, "error": "Service not found . . . "}, status=400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)         
+            
             if request.method == 'DELETE':
                 requireFeild = ['service_id']
                 validator = uc.requireFeildValidation(request.data, requireFeild)
@@ -491,6 +492,7 @@ class SuperAdminApi(ModelViewSet):
                         return Response({"status": True,"message": f"{fetch_service.title} Service deleted successfully "}, status= 200)                   
                     return Response({"status": False, "error": "Service not found . . . "}, status=400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)
+        
         except Exception as e:
             message = {"status": False}
             message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
@@ -504,11 +506,14 @@ class SuperAdminApi(ModelViewSet):
                 required_feild = ['service' ,'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage']
                 validator = uc.requireFeildValidation(data, required_feild)
                 if validator['status']:
-                    ser = AddCostSerializer(data= data)
-                    if ser.is_valid():
-                        ser.save()
-                        return Response({"status": True,"message": ser.data}, status= 200)                   
-                    return Response({"status": False, "error": ser.errors}, status=400)
+                    fetch_service = Service.objects.filter(id = request.data['service']).first()
+                    if fetch_service:
+                        ser = AddCostSerializer(data= data)
+                        if ser.is_valid():
+                            ser.save()
+                            return Response ({"status": True, "city": fetch_service.vehicle_category.city.city ,"vehicle": fetch_service.vehicle_category.title ,"service": fetch_service.title ,"message": f'Cost of {fetch_service.title} Service in {fetch_service.vehicle_category.title} Vehicle Added Successfully', "data": ser.data}, status= 201)
+                        return Response({"status": False, "error": ser.errors}, status=400)
+                    return Response({"status": False, "Service": "ID doesnot exist"}, status= 400)
                 return Response({"status": False, "error": str(validator['message'])}, status=400)
 
             if request.method == 'GET':
@@ -992,4 +997,35 @@ class CityAdminApi(ModelViewSet):
             message.update(message=str(e)) if settings.DEBUG else message.update(
                 message="Internal server error"
             )
+            return Response(message, status=500)
+    
+    @action(detail=False, methods=['POST', 'GET', 'PATCH', 'DELETE'])
+    def cost (self, request, *args, **kwargs):
+        try:
+            fetch_admin = Admin.objects.filter(id = request.auth['id']).first()
+            if not fetch_admin:
+                return Response({"status": False, "message": "Admin not exists"}, status= 400)
+            if request.method == 'POST':
+                requireFeild= ['service', 'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    fetch_service = Service.objects.filter(id = request.data['service']).first()
+                    if fetch_service:
+                        ser = AddCost_Serializer(data= request.data)
+                        if ser.is_valid():
+                            ser.save()
+                            return Response ({"status": True, "city": fetch_service.vehicle_category.city.city ,"vehicle": fetch_service.vehicle_category.title ,"service": fetch_service.title ,"message": f'Cost of {fetch_service.title} Service in {fetch_service.vehicle_category.title} Vehicle Added Successfully', "data": ser.data}, status= 201)
+                        return Response ({"status": False, "message": ser.errors}, status= 400)
+                    return Response({"status": False, "Service": "ID doesnot exist"}, status= 400)
+                return Response ({"status": False, "field_error": validator['message']}, status= 400)
+
+            if request.method == 'GET':
+                pass
+            if request.method == 'PATCH':
+                pass
+            if request.method == 'DELETE':
+                pass
+        except Exception as e:
+            message = {"status": False}
+            message.update(message=str(e)) if settings.DEBUG else message.update(message="Internal server error")
             return Response(message, status=500)

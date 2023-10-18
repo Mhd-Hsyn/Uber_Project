@@ -186,6 +186,27 @@ class AddCostSerializer(serializers.ModelSerializer):
         if fetch_cost:
             raise serializers.ValidationError(f"Cost for {fetch_cost.service.title} Service in {fetch_cost.service.vehicle_category.title} Category in {fetch_cost.service.vehicle_category.city.city} City already exists ")
         return value
+    
+    def validate_initial_cost(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("initial_cost must be grater then 0")
+        return cost
+    
+    def validate_price_per_km(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("price_per_km must be grater then 0")
+        return cost
+    
+    def validate_waiting_cost(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("waiting_cost must be grater then 0")
+        return cost
+    
+    def validate_profit_percentage(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("profit_percentage must be grater then 0")
+        return cost
+
 
 class EditCostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -395,3 +416,36 @@ class EditService_Serializer(serializers.ModelSerializer):
         instance.description = validated_data['description']
         instance.save()
         return instance
+
+
+class AddCost_Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cost
+        fields = ['id', 'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage', 'service']
+    
+    def validate_service(self, service):
+        fetch_cost = Cost.objects.filter(service = service).first()
+        if fetch_cost:
+            raise serializers.ValidationError(f"cost for {service.title} service in {service.vehicle_category.title} category already exists")
+        return service
+    
+    def validate_initial_cost(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("initial_cost must be grater then 0")
+        return cost
+    
+    def validate_price_per_km(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("price_per_km must be grater then 0")
+        return cost
+    
+    def validate_waiting_cost(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("waiting_cost must be grater then 0")
+        return cost
+    
+    def validate_profit_percentage(self, cost):
+        if int(cost) <= 0 :
+            raise serializers.ValidationError("profit_percentage must be grater then 0")
+        return cost
+    
