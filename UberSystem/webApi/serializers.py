@@ -418,7 +418,7 @@ class EditService_Serializer(serializers.ModelSerializer):
         return instance
 
 
-class AddCost_Serializer(serializers.ModelSerializer):
+class Cost_Serializer(serializers.ModelSerializer):
     class Meta:
         model = Cost
         fields = ['id', 'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage', 'service']
@@ -448,4 +448,12 @@ class AddCost_Serializer(serializers.ModelSerializer):
         if int(cost) <= 0 :
             raise serializers.ValidationError("profit_percentage must be grater then 0")
         return cost
+    
+    def update(self, instance, validated_data):
+        instance.initial_cost = validated_data['initial_cost']
+        instance.price_per_km = validated_data['price_per_km']
+        instance.waiting_cost =  validated_data.get('waiting_cost')
+        instance.profit_percentage = validated_data.get('profit_percentage')
+        instance.save()
+        return instance
     

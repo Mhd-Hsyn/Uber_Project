@@ -1008,7 +1008,7 @@ class CityAdminApi(ModelViewSet):
                 if validator['status']:
                     fetch_service = Service.objects.filter(id = request.data['service']).first()
                     if fetch_service:
-                        ser = AddCost_Serializer(data= request.data)
+                        ser = Cost_Serializer(data= request.data)
                         if ser.is_valid():
                             ser.save()
                             return Response ({
@@ -1032,7 +1032,7 @@ class CityAdminApi(ModelViewSet):
                     if fetch_service:
                         fetch_cost = Cost.objects.filter(service = fetch_service).first()
                         if fetch_cost:
-                            ser = AddCost_Serializer(fetch_cost)
+                            ser = Cost_Serializer(fetch_cost)
                             return Response({
                                 "status": True, 
                                 "city": fetch_service.vehicle_category.city.city, 
@@ -1045,7 +1045,27 @@ class CityAdminApi(ModelViewSet):
                 return Response ({"status": False, "field_error": validator['message']}, status= 400)
                                
             if request.method == 'PUT':
-                pass
+                requireFeild= ['cost', 'initial_cost', 'price_per_km', 'waiting_cost', 'profit_percentage']
+                validator = uc.requireFeildValidation(request.data, requireFeild)
+                if validator['status']:
+                    fetch_cost = Cost.objects.filter(id = request.data['cost']).first()
+                    if fetch_cost:
+                        ser = Cost_Serializer(instance= fetch_cost, data= request.data)
+                        if ser.is_valid():
+                            ser.save()
+                            return Response ({
+                                "status": True, 
+                                "city": fetch_cost.service.vehicle_category.city.city, 
+                                "vehicle": fetch_cost.service.vehicle_category.title, 
+                                "service": fetch_cost.service.title ,
+                                "message": f'Cost of {fetch_cost.service.title} Service in {fetch_cost.service.vehicle_category.title} Vehicle EDIT Successfully', 
+                                "data": ser.data
+                                },
+                                status= 201)
+                        return Response ({"status": False, "message": ser.errors}, status= 400)
+                    return Response({"status": False, "Cost": "ID doesnot exist"}, status= 400)
+                return Response ({"status": False, "field_error": validator['message']}, status= 400)
+
             if request.method == 'DELETE':
                 pass
         except Exception as e:
