@@ -5,7 +5,7 @@ from .views import *
 # Create a router for the viewset
 router = DefaultRouter()
 router.register(r"auth", CustomerAuthViewset, basename="auth")
-router.register(r"api", SuperAdminApi, basename="api")
+router.register(r"api", CustomerApi, basename="api")
 
 
 urlpatterns = [

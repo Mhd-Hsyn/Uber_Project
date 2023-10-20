@@ -71,32 +71,7 @@ class CaptionAuthViewset(ModelViewSet):
             return Response({"services is not available"}, status=status.HTTP_404_NOT_FOUND)
 
 
-
-
-# captain_vehicle_info Api
-    queryset = CaptainVehicle.objects.all()
-    serializer_class = CaptionVehicleSerializer   
-     
-    @action(detail=False, methods=['POST'])
-    def captain_vehicle_info(self, request, *args, **kwargs):
-        requireFeild = ['cnic','cnic_front_image','cnic_back_image','vehicle_number','numberplate_image','vehicle_document_image','license_number','license_front_image','license_back_image','vehicle_category']
-        validator = uc.requireFeildValidation(request.data, requireFeild)
-        if validator['status']:
-            captain = request.data.get('captain')
-            vehicle_category = request.data.get('vehicle_category')
-
-            captain_uid = Captain.objects.filter(id=captain).first()
-            vehicle_category_obj = VehicleCategory.objects.filter(id=vehicle_category).first()
-
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.validated_data['captain'] = captain_uid
-            serializer.validated_data['vehicle_category'] = vehicle_category_obj
-            serializer.save()
-            return Response({"status": True, "message": "Vehicle details Successfully Saved!"}, status=status.HTTP_201_CREATED)
-        return Response({"status": False, "message": str(validator['message'])}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Customer sign-in
+# Captain sign-in
 
     @action(detail=False, methods=['POST'])
     def login(self, request):
@@ -124,14 +99,158 @@ class CaptionAuthViewset(ModelViewSet):
         except Exception as e:
             return Response({"status": False, "error": str(e)}, status=400)
 
-# rider-info-get Api
+# Captain adminForgotPassSendMail
+
+    @action(detail= False, methods= ['POST'])
+    def adminForgotPassSendMail(self, request):
+        try:
+            requireFeild = ["email"]
+            validator = uc.requireFeildValidation(request.data, requireFeild)
+            if validator["status"]:
+                email = request.data['email']
+                fetchuser = Captain.objects.filter(email=email).first()
+                if fetchuser:
+                    otpCode = random.randint(1000, 9999)
+                    fetchuser.Otp = otpCode
+                    fetchuser.OtpStatus = True
+                    fetchuser.OtpCount = 0
+                    fetchuser.save()
+                    data = {
+                        "subject": "OTP for Reset Password Ubers",
+                        "EMAIL_HOST_USER" : config('EMAIL_HOST_USER'),
+                        "toemail": email,
+                        "token" : otpCode
+
+                    }
+                    email_status = verified.forgetEmailPattern(data)
+                    if email_status:
+                        return Response(
+                            {
+                                "status": True,
+                                "message": f"OTP send Successfully check your email {email}",
+                                "id": str(fetchuser.id),
+                            },
+                            status=status.HTTP_200_OK,
+                        )
+                    else:
+                        return Response({'status': False, 'message': 'Something went wrong'})
+                return Response({"status": False, "error": "No User found in this email"},status=status.HTTP_404_NOT_FOUND,)
+            return Response({"status": False, "error": "email required"})
+        except Exception as e:
+            return Response({"status": False, "error": str(e)}, status=400)
+        
+
+# Captain checkOtpToken
+
+    @action(detail=False, methods=["POST"])
+    def checkOtpToken(self, request):
+        try:
+            requireFeild = ["otp", "id"]
+            feild_status = uc.requireFeildValidation(request.data, requireFeild)
+            if feild_status["status"]:
+                otp = request.data["otp"]
+                uid = request.data["id"]
+                fetchuser = Captain.objects.filter(id=uid).first()
+                if fetchuser:
+                    if fetchuser.OtpStatus and fetchuser.OtpCount < 3:
+                        if fetchuser.Otp == int(otp):
+                            fetchuser.Otp = 0
+                            fetchuser.save()
+                            return Response(
+                                {
+                                    "status": True,
+                                    "message": "Otp verified . . . ",
+                                    "id": str(fetchuser.id),
+                                },
+                                status=status.HTTP_200_OK,
+                            )
+                        else:
+                            fetchuser.OtpCount += 1
+                            fetchuser.save()
+                            if fetchuser.OtpCount >= 3:
+                                fetchuser.Otp = 0
+                                fetchuser.OtpCount = 0
+                                fetchuser.OtpStatus = False
+                                fetchuser.save()
+                                return Response({"status": False,"message": f"Your OTP is expired . . . Kindly get OTP again ",})
+                            return Response({"status": False, "message": f"Your OTP is wrong . You have only {3- fetchuser.OtpCount} attempts left ",})
+                    return Response({"status": False, "error": "No OTP , Otp Status False"},status=404,)
+                return Response({"status": False, "error": "User not exist"}, status=404)
+            return Response({"status": False, "error": feild_status["message"]})
+        except Exception as e:
+            return Response({"status": False, "message": str(e)}, status=400)
+    
+# Captain resetPassword
+
+    @action(detail=False, methods=["POST"])
+    def resetPassword(self, request):
+        try:
+            requireFeild = ["id", "newpassword"]
+            requiredFeild_status = uc.requireFeildValidation(request.data, requireFeild)
+            if requiredFeild_status["status"]:
+                uid = request.data["id"]
+                newpassword = request.data["newpassword"]
+                if not uc.checkpasslen(password=newpassword):
+                    return Response({"status": False,"error": "Password length must be greater than 8",})
+                fetchuser = Captain.objects.filter(id=uid).first()
+                if fetchuser:
+                    if fetchuser.OtpStatus and fetchuser.Otp == 0:
+                        fetchuser.password = handler.hash(newpassword)
+                        fetchuser.OtpStatus = False
+                        fetchuser.OtpCount = 0
+                        fetchuser.save()
+                        logout_all = CaptainWhitelistToken.objects.filter(captain=fetchuser)
+                        logout_all.delete()
+                        return Response(
+                            {
+                                "status": True,
+                                "message": "Password Reset Successfully Go to Login",
+                            },
+                            status=200,
+                        )
+                    return Response({"status": False, "error": "Token not verified !!!!"}, status= 400)
+                return Response({"status": False, "error": "User Not Exist !!!"}, status= 404)
+            return Response({"status": False, "error": requiredFeild_status["message"]}, status= 400)
+        except Exception as e:
+            return Response({"status": False, "message": str(e)}, status=400)
+
+
+
+# captain_vehicle_info Api
 
 class captain_Api(ModelViewSet):
     permission_classes = [CaptainPermission]
+
+    queryset = CaptainVehicle.objects.all()
+    serializer_class = CaptionVehicleSerializer   
+     
+    @action(detail=False, methods=['POST'])
+    def captain_vehicle_info(self, request, *args, **kwargs):
+        requireFeild = ['cnic','cnic_front_image','cnic_back_image','vehicle_number','numberplate_image','vehicle_document_image','license_number','license_front_image','license_back_image','vehicle_category']
+        validator = uc.requireFeildValidation(request.data, requireFeild)
+        if validator['status']:
+            captain = request.data.get('captain')
+            vehicle_category = request.data.get('vehicle_category')
+
+            captain_uid = Captain.objects.filter(id=captain).first()
+            vehicle_category_obj = VehicleCategory.objects.filter(id=vehicle_category).first()
+
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.validated_data['captain'] = captain_uid
+            serializer.validated_data['vehicle_category'] = vehicle_category_obj
+            serializer.save()
+            return Response({"status": True, "message": "Vehicle details Successfully Saved!"}, status=status.HTTP_201_CREATED)
+        return Response({"status": False, "message": str(validator['message'])}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+
+# rider-info-get Api
+
     @action(detail=False, methods=["GET"])
     def captain_vehicle_info_get(self, request):
         try:
-            token = request.auth  # access from permission class after decode
+            token = request.auth 
             fetchuser = CaptainVehicle.objects.filter(captain=token["id"]).values('approval_status','approval_message','cnic','cnic_front_image','cnic_back_image','vehicle_number','numberplate_image',
             'vehicle_document_image','license_number','license_front_image','license_back_image', 
             first_name=F('captain__fname'), lastname=F('captain__lname'),
@@ -149,7 +268,7 @@ class captain_Api(ModelViewSet):
     @action(detail=False, methods=["PUT"])
     def profile(self, request):
         try:
-            decoded_token = request.auth  # get decoded token from permission class
+            decoded_token = request.auth  
             email = decoded_token["email"]
             fetchuser = Captain.objects.filter(email=email).first()
 
@@ -223,118 +342,7 @@ class captain_Api(ModelViewSet):
             return Response({"status": False, "message": "Unauthorized"})
 
 
-    @action(detail= False, methods= ['POST'])
-    def adminForgotPassSendMail(self, request):
-        try:
-            requireFeild = ["email"]
-            validator = uc.requireFeildValidation(request.data, requireFeild)
-            if validator["status"]:
-                email = request.data['email']
-                fetchuser = Customer.objects.filter(email=email).first()
-                if fetchuser:
-                    otpCode = random.randint(1000, 9999)
-                    fetchuser.Otp = otpCode
-                    fetchuser.OtpStatus = True
-                    fetchuser.OtpCount = 0
-                    fetchuser.save()
-                    data = {
-                        "subject": "OTP for Reset Password Ubers",
-                        "EMAIL_HOST_USER" : config('EMAIL_HOST_USER'),
-                        "toemail": email,
-                        "token" : otpCode
-
-                    }
-                    email_status = verified.forgetEmailPattern(data)
-                    if email_status:
-                        return Response(
-                            {
-                                "status": True,
-                                "message": f"OTP send Successfully check your email {email}",
-                                "id": str(fetchuser.id),
-                            },
-                            status=status.HTTP_200_OK,
-                        )
-                    else:
-                        return Response({'status': False, 'message': 'Something went wrong'})
-                return Response({"status": False, "error": "No User found in this email"},status=status.HTTP_404_NOT_FOUND,)
-            return Response({"status": False, "error": "email required"})
-        except Exception as e:
-            return Response({"status": False, "error": str(e)}, status=400)
         
-
-
-    @action(detail=False, methods=["POST"])
-    def checkOtpToken(self, request):
-        try:
-            requireFeild = ["otp", "id"]
-            feild_status = uc.requireFeildValidation(request.data, requireFeild)
-            if feild_status["status"]:
-                otp = request.data["otp"]
-                uid = request.data["id"]
-                fetchuser = Customer.objects.filter(id=uid).first()
-                if fetchuser:
-                    if fetchuser.OtpStatus and fetchuser.OtpCount < 3:
-                        if fetchuser.Otp == int(otp):
-                            fetchuser.Otp = 0
-                            fetchuser.save()
-                            return Response(
-                                {
-                                    "status": True,
-                                    "message": "Otp verified . . . ",
-                                    "id": str(fetchuser.id),
-                                },
-                                status=status.HTTP_200_OK,
-                            )
-                        else:
-                            fetchuser.OtpCount += 1
-                            fetchuser.save()
-                            if fetchuser.OtpCount >= 3:
-                                fetchuser.Otp = 0
-                                fetchuser.OtpCount = 0
-                                fetchuser.OtpStatus = False
-                                fetchuser.save()
-                                return Response({"status": False,"message": f"Your OTP is expired . . . Kindly get OTP again ",})
-                            return Response({"status": False, "message": f"Your OTP is wrong . You have only {3- fetchuser.OtpCount} attempts left ",})
-                    return Response({"status": False, "error": "No OTP , Otp Status False"},status=404,)
-                return Response({"status": False, "error": "User not exist"}, status=404)
-            return Response({"status": False, "error": feild_status["message"]})
-        except Exception as e:
-            return Response({"status": False, "message": str(e)}, status=400)
-    
-
-
-    @action(detail=False, methods=["POST"])
-    def resetPassword(self, request):
-        try:
-            requireFeild = ["id", "newpassword"]
-            requiredFeild_status = uc.requireFeildValidation(request.data, requireFeild)
-            if requiredFeild_status["status"]:
-                uid = request.data["id"]
-                newpassword = request.data["newpassword"]
-                if not uc.checkpasslen(password=newpassword):
-                    return Response({"status": False,"error": "Password length must be greater than 8",})
-                fetchuser = Customer.objects.filter(id=uid).first()
-                if fetchuser:
-                    if fetchuser.OtpStatus and fetchuser.Otp == 0:
-                        fetchuser.password = handler.hash(newpassword)
-                        fetchuser.OtpStatus = False
-                        fetchuser.OtpCount = 0
-                        fetchuser.save()
-                        logout_all = CustomerWhitelistToken.objects.filter(admin=fetchuser)
-                        logout_all.delete()
-                        return Response(
-                            {
-                                "status": True,
-                                "message": "Password Reset Successfully Go to Login",
-                            },
-                            status=200,
-                        )
-                    return Response({"status": False, "error": "Token not verified !!!!"}, status= 400)
-                return Response({"status": False, "error": "User Not Exist !!!"}, status= 404)
-            return Response({"status": False, "error": requiredFeild_status["message"]}, status= 400)
-        except Exception as e:
-            return Response({"status": False, "message": str(e)}, status=400)
-    
     
 # New Class use permission_classes    Admin Profile / change password / Logout
 class SuperAdminApi(ModelViewSet):

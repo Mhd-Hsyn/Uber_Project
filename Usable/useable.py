@@ -6,10 +6,9 @@ from webApi.models import *
 from PIL import Image
 
 def checkpasslen(password):
-    if len(password) < 8 :
+    if not (re.search(r'[!@#$%^&*(),.?":{}|<>]', password) and re.search(r'[A-Z]', password) and 8 <= len(password) <= 20):
         return False
-    else:
-        return True
+    return True
 
 def checkEmailPattern(email):
     try:

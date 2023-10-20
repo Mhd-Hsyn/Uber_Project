@@ -23,9 +23,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("", include('webApi.urls')),
     path("webApi/", include('webApi.urls')),
-    # path("", include('userApi.urls')),
+    path("", include('userApi.urls')),
     path("userApi/", include('userApi.urls')),
-    # path("", include('captainApi.urls')),
+    path("", include('captainApi.urls')),
     path("captainApi/", include('captainApi.urls')),
 
 ]

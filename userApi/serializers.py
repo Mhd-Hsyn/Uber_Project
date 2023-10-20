@@ -15,7 +15,7 @@ class CustomerSerializer(serializers.ModelSerializer):
 
         validator = uc.requireFeildValidation(data, requireFields) 
 
-        if not validator:
+        if not validator['status']:
             raise serializers.ValidationError({"error": validator["message"]})  # Change "requireFields" to "message"
 
         # Email validation
@@ -23,8 +23,6 @@ class CustomerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"error": "Email is not valid"})
 
         return data
-
-
 
     def validate_email(self, value):
         if not uc.checkEmailPattern(value):

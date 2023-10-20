@@ -14,7 +14,7 @@ from webApi.models import *
 from Usable import useable as uc
 from Usable import token as _auth
 from Usable import emailpattern as verified
-from Usable.permissions import SuperAdminPermission
+from Usable.permissions import *
 import random
 
 
@@ -163,7 +163,7 @@ class CustomerAuthViewset(ModelViewSet):
                         fetchuser.OtpStatus = False
                         fetchuser.OtpCount = 0
                         fetchuser.save()
-                        logout_all = CustomerWhitelistToken.objects.filter(admin=fetchuser)
+                        logout_all = CustomerWhitelistToken.objects.filter(customer=fetchuser)
                         logout_all.delete()
                         return Response(
                             {
@@ -180,24 +180,25 @@ class CustomerAuthViewset(ModelViewSet):
     
     
 # New Class use permission_classes    Admin Profile / change password / Logout
-class SuperAdminApi(ModelViewSet):
-    permission_classes = [SuperAdminPermission]
+class CustomerApi(ModelViewSet):
+    permission_classes = [CustomerPermission]
 
     @action(detail=False, methods=["GET"])
     def logout(self, request):
         try:
             token = request.auth  # access from permission class after decode
             fetchuser = Customer.objects.filter(id=token["id"]).first()
-            _auth.SuperAdminDeleteToken(fetchuser, request)
+            print(fetchuser)
+            _auth.CustomerDeleteToken(fetchuser, request)
             return Response({"status": True, "message": "Logout Successfully"}, status=200)
         except Exception as e:
             return Response({"status": False, "error": f"Something wrong {str(e)}"}, status=400)
 
 
     @action(detail=False, methods=["GET", "PUT"])
-    def profile(self, request):
+    def Customerprofile(self, request):
         try:
-            decoded_token = request.auth  # get decoded token from permission class
+            decoded_token = request.auth
             email = decoded_token["email"]
             fetchuser = Customer.objects.filter(email=email).first()
             if request.method == "GET":
@@ -252,14 +253,17 @@ class SuperAdminApi(ModelViewSet):
             if validator["status"]:
                 token = request.auth
                 fetchuser = Customer.objects.filter(id=token["id"]).first()
-                if handler.verify(request.data["oldpassword"], fetchuser.password):
+                print(request.data["oldpassword"])
+                chk_pass = handler.verify(request.data["oldpassword"], fetchuser.password)
+                if chk_pass:
                     if uc.checkpasslen(request.data["newpassword"]):
                         fetchuser.password = handler.hash(request.data["newpassword"])
                         # delete old token
-                        _auth.SuperAdminDeleteToken(fetchuser, request)
+                        _auth.CustomerDeleteToken(fetchuser, request)
                         # generate new token
-                        token = _auth.SuperAdminGenerateToken(fetchuser)
+                        token = _auth.CustomerGenerateToken(fetchuser)
                         fetchuser.save()
+                        print(fetchuser.password)
                         return Response(
                             {
                                 "status": True,
@@ -268,6 +272,7 @@ class SuperAdminApi(ModelViewSet):
                             },
                             status=200,
                         )
+                    return Response({"status": False, "error": "Password must contain at least one special character and one uppercase letter, and be between 8 and 20 characters long"}, status=400)
                 return Response({"status": False, "error": "Old Password not verified"}, status=400)
             return Response({"status": False, "error": validator["message"]}, status=400)
         except Exception as e:

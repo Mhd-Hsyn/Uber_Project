@@ -181,12 +181,9 @@ def SuperAdminDeleteToken(fetchuser, request):
 
 
 
-
-
-
 def CustomerGenerateToken(fetchuser):
     try:
-        secret_key = config("Customer_jwt_token")
+        secret_key = config("customer_jwt_token")
         total_days = 1
         token_payload = {
             "id": str(fetchuser.id),
@@ -214,7 +211,9 @@ def CustomerDeleteToken(fetchuser, request):
     try:
         token = request.META["HTTP_AUTHORIZATION"][7:]
         whitelist_token = CustomerWhitelistToken.objects.filter(customer = fetchuser.id, token = token).first()
-        whitelist_token.delete()
+        print(whitelist_token)
+        x =whitelist_token.delete()
+        print(x)
         admin_all_tokens = CustomerWhitelistToken.objects.filter(customer = fetchuser)
         for fetch_token in admin_all_tokens:
             try:

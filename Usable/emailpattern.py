@@ -3,11 +3,10 @@ import Usable.config as conf
 from django.core.mail import send_mail
 
 
-
 def forgetEmailPattern(data):
-    print("data",data)
+    print("data", data)
     try:
-        html_content = f'''
+        html_content = f"""
                     <!doctype html>
             <html lang="en-US">
 
@@ -59,7 +58,7 @@ def forgetEmailPattern(data):
                                             </tr>
                                             <tr>
                                                 <!-- <td style="height:40px;">&nbsp;</td> -->
-                                                <td style="background-color: #127DB3;"  ><h5 style="color: #fff;">Copyright 2023 - All Right Reserved The Uber System</h5></td>
+                                                <td style="background-color: #127DB3;"  ><h5 style="color: #fff;">Copyright 2023 - All Right Reserved The Next Photo</h5></td>
                                                 <!-- <td>The Next Photo</td> -->
                                             </tr>
                                             <tr>
@@ -86,10 +85,22 @@ def forgetEmailPattern(data):
             </body>
 
             </html>
-            '''
-        
-        send_mail(data['subject'],'' , data['EMAIL_HOST_USER'], [data['toemail']], connection=conf.connection,fail_silently=True,html_message=html_content)
-    
+            """
+
+        print("data['subject'", data["subject"])
+        print("data['EMAIL_HOST_USER'", data["EMAIL_HOST_USER"])
+        print("data['toemail'", data["toemail"])
+
+        send_mail(
+            data["subject"],
+            "",
+            data["EMAIL_HOST_USER"],
+            [data["toemail"]],
+            connection=conf.connection,
+            fail_silently=True,
+            html_message=html_content,
+        )
+
         return True
 
     except:
