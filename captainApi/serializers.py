@@ -5,17 +5,17 @@ from Usable import useable as uc
 from django.contrib.auth.hashers import make_password
 
 
-class CustomerSerializer(serializers.ModelSerializer):
+class CaptionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Customer
-        fields = ['fname', 'lname', 'email', 'password', 'contact', 'address']
+        model = Captain
+        fields = ['fname', 'lname', 'email', 'password', 'contact', 'address','profile']
 
     def validate(self, data):
-        requireFields = ['fname', 'lname', 'email', 'password', 'contact']
+        requireFields = ['fname', 'lname', 'email', 'password', 'contact', 'address','profile']
 
         validator = uc.requireFeildValidation(data, requireFields) 
 
-        if not validator:
+        if not validator['status']:
             raise serializers.ValidationError({"error": validator["message"]})  # Change "requireFields" to "message"
 
         # Email validation
@@ -23,8 +23,6 @@ class CustomerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"error": "Email is not valid"})
 
         return data
-
-
 
     def validate_email(self, value):
         if not uc.checkEmailPattern(value):
@@ -37,26 +35,26 @@ class CustomerSerializer(serializers.ModelSerializer):
         return make_password(value) 
 
     def validate_contact(self, contact):
-        existing_customer = Customer.objects.filter(contact=contact).first()
-        if existing_customer:
+        existing_rider = Captain.objects.filter(contact=contact).first()
+        if existing_rider:
             raise serializers.ValidationError("This contact number is already in use by another user.")
         
         return contact
  
  
 
-class CustomerLoginSerializer(serializers.ModelSerializer):
+class CaptainLoginSerializer(serializers.ModelSerializer):
     email = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = Customer
+        model = Captain
         fields = ["email", "password"]
 
     def validate(self, attrs):
         email = attrs.get("email")
         password = attrs.get("password")
-        fetch_user = Customer.objects.filter(email=email).first()
+        fetch_user = Captain.objects.filter(email=email).first()
         if not fetch_user:
             raise serializers.ValidationError("Email not found . . .")
         check_pass = handler.verify(password, fetch_user.password)
@@ -65,3 +63,20 @@ class CustomerLoginSerializer(serializers.ModelSerializer):
         attrs["fetch_user"] = fetch_user
         return attrs
 
+class GetCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCategory
+        fields= ['id', 'title', 'description']
+
+
+
+def validate_image_size(value):
+    max_size = 1 * 1024 * 1024
+
+    if value.size > max_size:
+        raise serializers.ValidationError("Image size should not exceed 5 MB.")
+
+class CaptionVehicleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CaptainVehicle
+        fields = '__all__'

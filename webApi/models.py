@@ -117,7 +117,7 @@ class Captain(BaseModel):
     no_of_wrong_attempts = models.IntegerField(default=0)
     status = models.BooleanField(default=False)
 
-    def __str__(self) -> str:
+    def __str__(self) :
         return str(self.email)
     
     
@@ -130,17 +130,22 @@ class CaptainWhitelistToken(models.Model):
         return str(self.captain)
 
 class CaptainVehicle(BaseModel):
+    cap_approval_status = (
+        ("Approved", "Approved"),
+        ("pending", "pending"),
+        ("Rejected", "Rejected")
+    )
     cnic = models.IntegerField(default=0)
     cnic_front_image = models.ImageField(upload_to="Captain/Cnic/", default="")
     cnic_back_image = models.ImageField(upload_to="Captain/Cnic/", default="")
-    vehicle_number = models.CharField( max_length=50, default="")
+    vehicle_number = models.CharField(max_length=50, default="")
     numberplate_image = models.ImageField(upload_to="Captain/Vehicle_Numberplate/", default="")
-    vehicle_document_image = models.ImageField( upload_to="Captain/Vehicle_Document/", default="")
-    license_number = models.CharField(max_length=50, default="")
-    license_front_image = models.ImageField( upload_to="Captain/License/", default="")
-    license_back_image = models.ImageField( upload_to="Captain/License/", default="")
-    approval_status = models.BooleanField(default=False)
-    approval_message = models.CharField( max_length=50, default="")
+    vehicle_document_image = models.ImageField(upload_to="Captain/Vehicle_Document/", default="")
+    license_number = models.IntegerField(default=0)
+    license_front_image = models.ImageField(upload_to="Captain/License/", default="")
+    license_back_image = models.ImageField(upload_to="Captain/License/", default="")
+    approval_status = models.CharField(choices=cap_approval_status, max_length=50, default="pending")
+    approval_message = models.CharField(max_length=255, default="your request is pending please wait with a 5 working days")
     captain = models.ForeignKey(Captain, on_delete=models.CASCADE, blank=True, null=True)
     vehicle_category = models.ForeignKey(VehicleCategory, on_delete=models.CASCADE, blank=True, null=True)
 

@@ -3,6 +3,7 @@ from passlib.hash import django_pbkdf2_sha256 as handler
 from decouple import config
 import jwt, datetime
 from webApi.models import *
+from PIL import Image
 
 def checkpasslen(password):
     if len(password) < 8 :
@@ -77,3 +78,55 @@ def validate_password(password):
         return False
     return True
 
+
+
+def imageValidator(img,ignoredimension = True,formatcheck = False):
+
+    try:
+
+        if img.name[-3:] == "svg":
+            return True
+        im = Image.open(img)
+        width, height = im.size
+        if ignoredimension:
+            if width > 330 and height > 330:
+                return False
+
+            else:
+                return True
+
+        if formatcheck:
+            if im.format == "PNG":
+                
+                return True
+
+            else:
+                
+                return False
+            
+        return True
+    
+    except:
+        return False
+
+
+def makedict(obj,key,imgkey=False):
+    dictobj = {}
+    
+    for j in range(len(key)):
+        keydata = getattr(obj,key[j])
+        if keydata:
+            dictobj[key[j]] = keydata
+    
+    if imgkey:
+        imgUrl = getattr(obj,key[-1])
+        if imgUrl:
+            dictobj[key[-1]] = imgUrl.url
+        else:
+             dictobj[key[-1]] = ""
+
+
+
+  
+
+    return dictobj
