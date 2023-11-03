@@ -235,7 +235,7 @@ class captain_Api(ModelViewSet):
             captain_uid = Captain.objects.filter(id=captain).first()
             vehicle_category_obj = VehicleCategory.objects.filter(id=vehicle_category).first()
 
-            serializer = self.get_serializer(data=request.data)
+            serializer = sel.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.validated_data['captain'] = captain_uid
             serializer.validated_data['vehicle_category'] = vehicle_category_obj
